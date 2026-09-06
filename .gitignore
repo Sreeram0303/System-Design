@@ -1,0 +1,9 @@
+# Book PDFs — copyrighted material, never committed to this repo.
+# ("System Design Interview by Alex Xu.pdf" and any others added later)
+*.pdf
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/

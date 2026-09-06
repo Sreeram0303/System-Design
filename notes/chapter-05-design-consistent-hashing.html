@@ -1,0 +1,427 @@
+<title>Design Consistent Hashing</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+  blockquote { margin: 1.2rem 0; padding: 0.9rem 1.15rem; border-left: 3px solid var(--ink-faint); background: var(--paper-raised); border-radius: 0 4px 4px 0; font-style: italic; color: var(--ink-soft); }
+  blockquote cite { display: block; margin-top: 0.5rem; font-style: normal; font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); }
+
+  .layout { display: grid; grid-template-columns: 216px minmax(0, 72ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.8rem; border-right: 1px solid var(--line); padding-right: 1.25rem; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.92rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+  td.num { font-variant-numeric: tabular-nums; }
+
+  .pill { display: inline-flex; align-items: center; justify-content: center; min-width: 2.4rem; padding: 0.15rem 0.5rem; border-radius: 999px; font-family: var(--mono); font-size: 0.78rem; background: var(--paper-sunken); color: var(--ink-soft); border: 1px solid var(--line); }
+  .pill.changed { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  .pill.same { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  /* ring diagrams */
+  .ring-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.1rem; margin: 0 0 1.2rem; }
+  .ring-figure { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 0.9rem 0.9rem 0.7rem; box-shadow: var(--shadow); margin: 0; }
+  .ring-figure svg { width: 100%; height: auto; display: block; }
+  .ring-figure figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
+  .ring-figure.wide { grid-column: 1 / -1; max-width: 420px; margin: 0 auto; }
+  .ring-legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.3rem; font-family: var(--mono); font-size: 0.72rem; color: var(--ink-soft); justify-content: center; margin-top: 0.5rem; }
+  .ring-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .rlg-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+    .ring-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 5 — Design Consistent Hashing</h1>
+    <p class="dek">Plain <code>hash(key) % N</code> falls apart the moment a server joins or leaves — nearly every key changes owner. Bending the hash space into a ring, and walking it clockwise, fixes that.</p>
+    <blockquote>
+      "Consistent hashing is a special kind of hashing such that when a hash table is re-sized, only k/n keys need to be remapped on average — where k is the number of keys and n is the number of slots. In most traditional hash tables, a change in the number of slots causes nearly all keys to be remapped."
+      <cite>Wikipedia, via Karger et al., MIT</cite>
+    </blockquote>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>The rehashing problem</a></li>
+        <li><a href="#s2"><span class="num">02</span>Hash ring basics</a></li>
+        <li><a href="#s3"><span class="num">03</span>Add / remove a server</a></li>
+        <li><a href="#s4"><span class="num">04</span>Two problems</a></li>
+        <li><a href="#s5"><span class="num">05</span>Virtual nodes</a></li>
+        <li><a href="#s5b"><span class="num">·</span>What it does &amp; doesn't solve</a></li>
+        <li><a href="#s6"><span class="num">06</span>Wrap-up &amp; real use</a></li>
+        <li><a href="#refs">Reference materials</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> The rehashing problem</h2>
+        <p>Naive load balancing with N cache servers:</p>
+        <pre class="code">serverIndex = hash(key) % N</pre>
+        <p>Fine while N is fixed. But take one server offline and N changes — <strong>nearly every key's</strong> <code>hash(key) % N</code> result changes with it, not just the keys that lived on the departed server. The result is a storm of cache misses across the entire system.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Key</th><th>Server @ N=4</th><th>Server @ N=3 (server 1 removed)</th></tr></thead>
+            <tbody>
+              <tr><td>key0</td><td><span class="pill same">S1</span></td><td><span class="pill changed">S0</span></td></tr>
+              <tr><td>key1</td><td><span class="pill same">S0</span></td><td><span class="pill same">S0</span></td></tr>
+              <tr><td>key2</td><td><span class="pill same">S2</span></td><td><span class="pill changed">S1</span></td></tr>
+              <tr><td>key3</td><td><span class="pill same">S1</span></td><td><span class="pill changed">S0</span></td></tr>
+              <tr><td>key4</td><td><span class="pill same">S3</span></td><td><span class="pill changed">S2</span></td></tr>
+              <tr><td>key5</td><td><span class="pill same">S0</span></td><td><span class="pill same">S0</span></td></tr>
+              <tr><td>key6</td><td><span class="pill same">S2</span></td><td><span class="pill changed">S1</span></td></tr>
+              <tr><td>key7</td><td><span class="pill same">S1</span></td><td><span class="pill changed">S1</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede">Illustrative distribution — the shape of the problem, not the book's exact hash outputs: removing <em>one</em> server out of four reshuffles most of the table, far more than the one server's worth of keys that actually needs to move.</p>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Consistent hashing &amp; the hash ring</h2>
+        <p>Take a hash function with a huge output range (SHA-1: 0 to 2¹⁶⁰−1) and <strong>join its two ends</strong> — the range becomes a ring where values wrap around. Servers are hashed onto the ring by IP/name; keys are hashed onto the same ring, with no modular operation this time.</p>
+        <p><strong>Server lookup:</strong> starting from a key's position, walk <strong>clockwise</strong> until you hit a server — that server owns the key.</p>
+        <div class="ring-grid">
+          <figure class="ring-figure wide">
+            <svg class="ring" viewBox="0 0 300 300" data-ring="fundamentals"></svg>
+            <figcaption>Fig 5-3–5-7 — Ring, servers, keys, clockwise lookup</figcaption>
+          </figure>
+        </div>
+        <div class="ring-legend">
+          <span><i class="rlg-dot" style="background:var(--accent-strong)"></i>server</span>
+          <span><i class="rlg-dot" style="background:var(--paper);border:2px solid var(--warn)"></i>key</span>
+          <span>dashed line — clockwise walk to owning server</span>
+        </div>
+        <div class="callout">
+          <span class="label">The key insight</span>
+          <p>A server and a key get their position on the ring <strong>independently</strong>, from hashing their own identity — a key is never "placed on" a server directly. Ownership is purely the outcome of the clockwise-walk rule. This is what makes add/remove cheap: a key's own position never moves, so changing the server set only changes which server you hit first for keys in one specific arc.</p>
+        </div>
+        <div class="callout callout-warn">
+          <span class="label">Implementation detail: what "clockwise" compiles to</span>
+          <p>The ring is circular, so past the maximum hash value you wrap back to 0. In code, server hashes live in a <strong>sorted structure</strong> (sorted array, or a balanced BST / TreeMap); a lookup is a binary search for the smallest server hash ≥ the key's hash — <code>O(log n)</code>. If nothing is found (key's hash is larger than every server's), the owner is simply the server with the <strong>smallest</strong> hash — that's the wraparound, expressed as an index wraparound instead of a geometric one.</p>
+        </div>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Adding &amp; removing a server</h2>
+        <p>This is the entire payoff of the ring: changing the server set only touches a <strong>small, localized arc</strong> of keys — never the whole table.</p>
+        <div class="ring-grid">
+          <figure class="ring-figure">
+            <svg class="ring" viewBox="0 0 300 300" data-ring="add-server"></svg>
+            <figcaption>Fig 5-8 / 5-14 — Adding S4 remaps only key0</figcaption>
+          </figure>
+          <figure class="ring-figure">
+            <svg class="ring" viewBox="0 0 300 300" data-ring="remove-server"></svg>
+            <figcaption>Fig 5-9 / 5-15 — Removing S1 remaps only key1 → S2</figcaption>
+          </figure>
+        </div>
+        <ul>
+          <li><strong>Add a server:</strong> walk counter-clockwise from the new server to the previous one — every key in that arc moves to the new server. Everything else is untouched.</li>
+          <li><strong>Remove a server:</strong> walk counter-clockwise from the removed server to the previous one — every key in that arc moves to the next server clockwise. Everything else is untouched.</li>
+        </ul>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Two problems with the basic ring</h2>
+        <p>The basic algorithm (Karger et al., MIT) — hash servers and keys uniformly onto the ring, resolve clockwise — has two failure modes once servers are added or removed a few times:</p>
+        <div class="ring-grid">
+          <figure class="ring-figure wide">
+            <svg class="ring" viewBox="0 0 300 300" data-ring="non-uniform"></svg>
+            <figcaption>Fig 5-10 / 5-11 — Uneven partitions &amp; a hotspot server</figcaption>
+          </figure>
+        </div>
+        <ol style="padding-left: 1.3rem;">
+          <li><strong>Uneven partition sizes.</strong> A partition is the arc between two adjacent servers. Random placement can leave one server's partition several times larger than its neighbors'.</li>
+          <li><strong>Non-uniform key distribution.</strong> In the extreme, one server can end up owning most of the ring while others sit nearly empty — the same hotspot/celebrity problem sharding already had (Chapter 1).</li>
+        </ol>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Virtual nodes — the fix</h2>
+        <p>Represent each physical server with <strong>many points</strong> on the ring — virtual nodes / replicas — instead of just one. Lookup is unchanged: walk clockwise to the first virtual node, then resolve it to its physical server.</p>
+        <div class="ring-grid">
+          <figure class="ring-figure wide">
+            <svg class="ring" viewBox="0 0 300 300" data-ring="virtual-nodes"></svg>
+            <figcaption>Fig 5-12 / 5-13 — S0 and S1, three virtual nodes each</figcaption>
+          </figure>
+        </div>
+        <div class="ring-legend">
+          <span><i class="rlg-dot" style="background:var(--accent-strong)"></i>S0's virtual nodes</span>
+          <span><i class="rlg-dot" style="background:var(--warn)"></i>S1's virtual nodes</span>
+        </div>
+        <p>More virtual nodes → each physical server's ownership is chopped into many small, scattered slivers instead of one contiguous block, which evens out the total. This is a statistical effect: standard deviation shrinks as the virtual-node count grows — roughly ≈10% of the mean at ~100 virtual nodes, ≈5% at ~200 (per an independent experiment).</p>
+        <div class="callout callout-warn">
+          <span class="label">Tradeoff</span>
+          <p>More virtual nodes = more metadata to store and maintain. Tune the count to fit the system's needs rather than maximizing it blindly.</p>
+        </div>
+      </section>
+
+      <section id="s5b">
+        <h2><span class="sec-num">·</span> What "only a fraction moves" really means</h2>
+        <p>When a server is removed, the keys that move are <strong>exactly</strong> the ones it owned — the arc between it and the previous server. Not a random ~1/n sample; a specific, contiguous set.</p>
+        <p>Whether that fraction is close to <code>1/n</code> (the formal "k/n keys" claim) isn't guaranteed by the basic ring — it depends on how much of the ring that server happened to own. Without virtual nodes, one server could hold a wildly disproportionate share, so removing it could move way more or less than <code>1/n</code> of the data. Virtual nodes make each physical server's total share converge toward <code>1/n</code>, which is what makes the formal claim hold in practice.</p>
+        <p class="lede"><strong>Contrast with naive <code>hash % N</code>:</strong> removing one server there reshuffles nearly every key, because N itself changes for keys that had nothing to do with the removed server. In consistent hashing, unaffected keys are structurally untouched — their clockwise walk never passed through the removed server's position.</p>
+
+        <h3>What consistent hashing does not solve</h3>
+        <p>An easy gap to miss: consistent hashing is purely a <strong>routing/partitioning</strong> primitive. It answers "which server is responsible for this key, right now" — it says nothing about how the actual data gets there. That depends on what's behind the ring:</p>
+        <div class="callout">
+          <span class="label">Ring routes to a cache</span>
+          <p>Nothing needs to move at all — the database is still the source of truth. A dead server's keys simply cache-miss on their next request, fall through to the DB, and get cached fresh on the new owning server. "Redistributing keys" just means <em>which server will miss next</em> — that's why minimizing the remapped fraction matters: each remapped key is one cache miss hitting the DB. No data-loss risk, since the cache was never authoritative.</p>
+        </div>
+        <div class="callout callout-warn">
+          <span class="label">Ring routes to a real data store (Dynamo, Cassandra)</span>
+          <p>Losing a server's only copy would be real data loss, so the ring is paired with <strong>replication</strong>: each key lives on the ring-assigned server <em>and</em> the next N-1 servers clockwise (a "preference list"). A dead server's surviving replicas keep serving immediately; in the background, the system copies the under-replicated range onto the new Nth replica. Transient failures often use <strong>hinted handoff</strong> — a neighbor temporarily accepts writes until the original server returns.</p>
+        </div>
+        <p>The clean way to carry this forward: consistent hashing gives you the ring — a stable answer to "which node." What lives at each node, and how it survives that node dying, is a separate layer covered in <strong>Chapter 6 (Design a Key-Value Store)</strong>.</p>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Wrap-up</h2>
+        <p><strong>Benefits of consistent hashing:</strong></p>
+        <ul>
+          <li>Minimizes key redistribution when servers are added or removed.</li>
+          <li>Makes horizontal scaling easy — data stays evenly distributed.</li>
+          <li>Mitigates the hotspot/celebrity-key problem by spreading data more evenly across the ring.</li>
+        </ul>
+        <div class="callout">
+          <span class="label">Used in production by</span>
+          <ul>
+            <li>Amazon Dynamo's partitioning component</li>
+            <li>Apache Cassandra's cluster data partitioning</li>
+            <li>Discord</li>
+            <li>Akamai's CDN</li>
+            <li>Google's Maglev network load balancer</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> Consistent hashing — <a href="https://en.wikipedia.org/wiki/Consistent_hashing">en.wikipedia.org</a></li>
+          <li><span class="idx">02</span> Consistent Hashing (experiment on virtual nodes) — <a href="https://tom-e-white.com/2007/11/consistent-hashing.html">tom-e-white.com</a></li>
+          <li><span class="idx">03</span> Dynamo: Amazon's Highly Available Key-value Store — <a href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf">allthingsdistributed.com</a></li>
+          <li><span class="idx">04</span> Cassandra — A Decentralized Structured Storage System — <a href="http://www.cs.cornell.edu/Projects/ladis2009/papers/Lakshman-ladis2009.PDF">cs.cornell.edu</a></li>
+          <li><span class="idx">05</span> How Discord Scaled Elixir to 5,000,000 Concurrent Users — <a href="https://blog.discord.com/scaling-elixir-f9b8e1e7c29b">blog.discord.com</a></li>
+          <li><span class="idx">06</span> CS168: Introduction and Consistent Hashing — <a href="http://theory.stanford.edu/~tim/s16/l/l1.pdf">theory.stanford.edu</a></li>
+          <li><span class="idx">07</span> Maglev: A Fast and Reliable Software Network Load Balancer — <a href="https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/44824.pdf">research.google.com</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-05-design-consistent-hashing.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var CX = 150, CY = 150, R = 108;
+
+  function polar(angleDeg, radius) {
+    var t = (angleDeg) * Math.PI / 180;
+    return [CX + radius * Math.sin(t), CY - radius * Math.cos(t)];
+  }
+
+  function arcPath(a1, a2, radius) {
+    var p1 = polar(a1, radius), p2 = polar(a2, radius);
+    var delta = (a2 - a1 + 360) % 360;
+    if (delta === 0) delta = 360;
+    var largeArc = delta > 180 ? 1 : 0;
+    return 'M ' + p1[0] + ' ' + p1[1] + ' A ' + radius + ' ' + radius + ' 0 ' + largeArc + ' 1 ' + p2[0] + ' ' + p2[1];
+  }
+
+  function el(tag, attrs) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function render(svg, config) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var line = cssVar('--line'), ink = cssVar('--ink'), inkSoft = cssVar('--ink-soft'),
+        inkFaint = cssVar('--ink-faint'), accentStrong = cssVar('--accent-strong'),
+        warn = cssVar('--warn'), paper = cssVar('--paper');
+
+    svg.appendChild(el('circle', { cx: CX, cy: CY, r: R, fill: 'none', stroke: line, 'stroke-width': 1.5 }));
+
+    if (config.dominantArc) {
+      svg.appendChild(el('path', {
+        d: arcPath(config.dominantArc.from, config.dominantArc.to, R),
+        fill: 'none', stroke: warn, 'stroke-width': 14, opacity: 0.22, 'stroke-linecap': 'round'
+      }));
+    }
+    if (config.highlightArc) {
+      svg.appendChild(el('path', {
+        d: arcPath(config.highlightArc.from, config.highlightArc.to, R),
+        fill: 'none', stroke: warn, 'stroke-width': 14, opacity: 0.3, 'stroke-linecap': 'round'
+      }));
+    }
+
+    function findServerAngle(id) {
+      for (var i = 0; i < config.servers.length; i++) if (config.servers[i].id === id) return config.servers[i].angle;
+      return 0;
+    }
+
+    (config.keys || []).forEach(function (k) {
+      svg.appendChild(el('path', {
+        d: arcPath(k.angle, findServerAngle(k.mapsTo), R),
+        fill: 'none', stroke: inkFaint, 'stroke-width': 1, 'stroke-dasharray': '3,4', opacity: 0.7
+      }));
+    });
+
+    (config.removed || []).forEach(function (s) {
+      var p = polar(s.angle, R);
+      svg.appendChild(el('circle', { cx: p[0], cy: p[1], r: 9, fill: 'none', stroke: inkFaint, 'stroke-width': 1.5, 'stroke-dasharray': '2,3' }));
+      var lp = polar(s.angle, R + 24);
+      var t = el('text', { x: lp[0], y: lp[1], 'text-anchor': 'middle', 'font-family': 'IBM Plex Mono, monospace', 'font-size': 10, fill: inkFaint, 'font-style': 'italic' });
+      t.textContent = s.id + ' (removed)';
+      svg.appendChild(t);
+    });
+
+    (config.servers || []).forEach(function (s) {
+      var p = polar(s.angle, R);
+      var color = s.group === 'B' ? warn : accentStrong;
+      svg.appendChild(el('circle', { cx: p[0], cy: p[1], r: 8, fill: color }));
+      var lp = polar(s.angle, R + 22);
+      var t = el('text', { x: lp[0], y: lp[1], 'text-anchor': 'middle', 'font-family': 'IBM Plex Mono, monospace', 'font-size': 10.5, 'font-weight': 600, fill: ink });
+      t.textContent = s.id;
+      svg.appendChild(t);
+    });
+
+    (config.keys || []).forEach(function (k) {
+      var p = polar(k.angle, R);
+      svg.appendChild(el('circle', { cx: p[0], cy: p[1], r: 5, fill: paper, stroke: warn, 'stroke-width': 2 }));
+      var lp = polar(k.angle, R - 24);
+      var t = el('text', { x: lp[0], y: lp[1], 'text-anchor': 'middle', 'font-family': 'IBM Plex Mono, monospace', 'font-size': 9.5, fill: inkSoft });
+      t.textContent = k.id;
+      svg.appendChild(t);
+    });
+  }
+
+  var configs = {
+    'fundamentals': {
+      servers: [{ id: 'S0', angle: 20 }, { id: 'S1', angle: 100 }, { id: 'S2', angle: 200 }, { id: 'S3', angle: 300 }],
+      keys: [{ id: 'k0', angle: 350, mapsTo: 'S0' }, { id: 'k1', angle: 60, mapsTo: 'S1' }, { id: 'k2', angle: 160, mapsTo: 'S2' }, { id: 'k3', angle: 260, mapsTo: 'S3' }]
+    },
+    'add-server': {
+      servers: [{ id: 'S0', angle: 20 }, { id: 'S1', angle: 100 }, { id: 'S2', angle: 200 }, { id: 'S3', angle: 300 }, { id: 'S4', angle: 5 }],
+      keys: [{ id: 'k0', angle: 350, mapsTo: 'S4' }, { id: 'k1', angle: 60, mapsTo: 'S1' }, { id: 'k2', angle: 160, mapsTo: 'S2' }, { id: 'k3', angle: 260, mapsTo: 'S3' }],
+      highlightArc: { from: 300, to: 5 }
+    },
+    'remove-server': {
+      servers: [{ id: 'S0', angle: 20 }, { id: 'S2', angle: 200 }, { id: 'S3', angle: 300 }],
+      removed: [{ id: 'S1', angle: 100 }],
+      keys: [{ id: 'k0', angle: 350, mapsTo: 'S0' }, { id: 'k1', angle: 60, mapsTo: 'S2' }, { id: 'k2', angle: 160, mapsTo: 'S2' }, { id: 'k3', angle: 260, mapsTo: 'S3' }],
+      highlightArc: { from: 20, to: 100 }
+    },
+    'non-uniform': {
+      servers: [{ id: 'S0', angle: 0 }, { id: 'S1', angle: 10 }, { id: 'S3', angle: 20 }, { id: 'S2', angle: 350 }],
+      keys: [
+        { id: 'k0', angle: 5, mapsTo: 'S1' }, { id: 'k1', angle: 50, mapsTo: 'S2' }, { id: 'k2', angle: 95, mapsTo: 'S2' },
+        { id: 'k3', angle: 140, mapsTo: 'S2' }, { id: 'k4', angle: 185, mapsTo: 'S2' }, { id: 'k5', angle: 230, mapsTo: 'S2' },
+        { id: 'k6', angle: 275, mapsTo: 'S2' }, { id: 'k7', angle: 320, mapsTo: 'S2' }
+      ],
+      dominantArc: { from: 20, to: 350 }
+    },
+    'virtual-nodes': {
+      servers: [
+        { id: 'S0_0', angle: 15, group: 'A' }, { id: 'S1_0', angle: 60, group: 'B' }, { id: 'S0_1', angle: 140, group: 'A' },
+        { id: 'S1_1', angle: 200, group: 'B' }, { id: 'S0_2', angle: 250, group: 'A' }, { id: 'S1_2', angle: 320, group: 'B' }
+      ],
+      keys: [{ id: 'k0', angle: 0, mapsTo: 'S0_0' }, { id: 'k1', angle: 90, mapsTo: 'S0_1' }, { id: 'k2', angle: 180, mapsTo: 'S1_1' }, { id: 'k3', angle: 270, mapsTo: 'S1_2' }]
+    }
+  };
+
+  document.querySelectorAll('svg.ring').forEach(function (svg) {
+    var name = svg.getAttribute('data-ring');
+    if (configs[name]) render(svg, configs[name]);
+  });
+})();
+</script>

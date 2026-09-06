@@ -1,0 +1,472 @@
+<title>Design a Rate Limiter</title>
+<style>
+  :root {
+    --paper: #F1F3EC;
+    --paper-raised: #E7EAE0;
+    --paper-sunken: #E9ECE3;
+    --ink: #1C2420;
+    --ink-soft: #4B564F;
+    --ink-faint: #7C877E;
+    --accent: #0E6E62;
+    --accent-strong: #0B554B;
+    --accent-soft: #DCEAE5;
+    --warn: #B5651D;
+    --warn-soft: #F3E3D3;
+    --mid: #6E7F8C;
+    --mid-soft: #E1E6EA;
+    --line: #D3D8CD;
+    --code-bg: #E7EAE1;
+    --shadow: 0 1px 2px rgba(28,36,32,0.06);
+
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; color: var(--ink-soft); }
+  pre.code .k { color: var(--accent-strong); }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+
+  .layout { display: grid; grid-template-columns: 216px minmax(0, 70ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.8rem; border-right: 1px solid var(--line); padding-right: 1.25rem; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.92rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; }
+  figcaption { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  /* algorithm cards */
+  .algo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 0 0 1.2rem; }
+  .algo-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.1rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 0.55rem; }
+  .algo-card .name { font-family: var(--mono); font-weight: 600; font-size: 0.92rem; color: var(--accent-strong); }
+  .algo-card .mech { font-size: 0.86rem; color: var(--ink-soft); margin: 0; }
+  .algo-card .params { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); }
+  .algo-card .pc { font-size: 0.8rem; margin: 0; padding-left: 1.1rem; }
+  .algo-card .pc.pro { color: var(--accent-strong); }
+  .algo-card .pc.con { color: var(--warn); }
+  .algo-card .pc li { margin-bottom: 0.2rem; color: var(--ink-soft); }
+
+  /* timeline for fixed window edge problem */
+  .timeline { position: relative; height: 130px; margin: 0 0 0.8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); overflow: hidden; }
+  .tl-window { position: absolute; top: 0; bottom: 26px; }
+  .tl-w1 { left: 0; width: 50%; background: var(--accent-soft); }
+  .tl-w2 { left: 50%; width: 50%; background: var(--mid-soft); }
+  .tl-sliding { position: absolute; top: 8px; bottom: 34px; left: 25%; width: 50%; border: 2px dashed var(--warn); border-radius: 6px; background: rgba(181,101,29,0.08); }
+  .tl-sliding-label { position: absolute; top: -1.55rem; left: 25%; width: 50%; text-align: center; font-family: var(--mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--warn); }
+  .tl-dot { position: absolute; top: 46%; width: 11px; height: 11px; border-radius: 50%; background: var(--ink); transform: translate(-50%, -50%); border: 2px solid var(--paper); }
+  .tl-ticks { position: absolute; left: 0; right: 0; bottom: 4px; height: 22px; }
+  .tl-tick { position: absolute; bottom: 0; transform: translateX(-50%); font-family: var(--mono); font-size: 0.66rem; color: var(--ink-faint); white-space: nowrap; }
+  .timeline-wrap { margin: 0 0 0.6rem; padding-top: 1.7rem; }
+  .tl-legend { display: flex; flex-wrap: wrap; gap: 1rem 1.4rem; font-family: var(--mono); font-size: 0.74rem; color: var(--ink-soft); margin: 0 0 1.2rem; }
+  .tl-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 9px; height: 9px; border-radius: 2px; display: inline-block; flex: none; }
+  .sw-w1 { background: var(--accent-soft); border: 1px solid var(--accent); }
+  .sw-w2 { background: var(--mid-soft); border: 1px solid var(--mid); }
+  .sw-slide { background: transparent; border: 2px dashed var(--warn); }
+  .sw-dot { background: var(--ink); border-radius: 50%; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+    .algo-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 4 — Design a Rate Limiter</h1>
+    <p class="dek">Controls how much traffic a client can send in a window. Five algorithms trade off memory, accuracy, and burst tolerance differently — and running one correctly across many servers is its own problem.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Why rate limit</a></li>
+        <li><a href="#s2"><span class="num">02</span>Requirements</a></li>
+        <li><a href="#s3"><span class="num">03</span>High-level design</a></li>
+        <li><a href="#s4"><span class="num">04</span>Algorithms</a></li>
+        <li><a href="#s5"><span class="num">05</span>The edge-window bug</a></li>
+        <li><a href="#s6"><span class="num">06</span>Deep dive: rules &amp; design</a></li>
+        <li><a href="#s7"><span class="num">07</span>Distributed environment</a></li>
+        <li><a href="#s8"><span class="num">08</span>Performance &amp; monitoring</a></li>
+        <li><a href="#s9"><span class="num">09</span>Wrap-up talking points</a></li>
+        <li><a href="#refs">Reference materials</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Why rate limit</h2>
+        <p>A rate limiter caps how many requests a client or service can send in a period; excess calls are blocked. E.g. "max 2 posts/second," "max 10 accounts/day per IP," "max 5 reward claims/week per device."</p>
+        <ul>
+          <li><strong>Prevent DoS-style resource starvation</strong> — Twitter caps tweets at 300/3h; Google Docs API caps reads at 300/user/60s.</li>
+          <li><strong>Reduce cost</strong> — fewer servers, and essential when paying per-call for third-party APIs.</li>
+          <li><strong>Prevent server overload</strong> — filters excess traffic from bots or misbehaving clients.</li>
+        </ul>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Requirements</h2>
+        <p>Scoped as a <strong>server-side</strong> API rate limiter, flexible enough to throttle by IP, user ID, or other properties, built for large scale, and working in a <strong>distributed</strong> environment.</p>
+        <ul>
+          <li>Accurately limit excessive requests.</li>
+          <li>Low latency — must not slow down HTTP responses.</li>
+          <li>Minimal memory use.</li>
+          <li>Works across multiple servers/processes.</li>
+          <li>Clear exceptions shown to throttled users.</li>
+          <li>High fault tolerance — a dead cache node shouldn't take the rest of the system down.</li>
+        </ul>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> High-level design</h2>
+        <p><strong>Client-side</strong> enforcement is unreliable — requests can be forged and clients aren't fully under your control. <strong>Server-side</strong>, either baked into the API server or as dedicated <strong>middleware</strong>, is the standard. At larger scale this middleware is often an <strong>API gateway</strong> — also handling SSL termination, auth, IP whitelisting.</p>
+        <div class="callout">
+          <span class="label">Server-side vs. gateway — depends on</span>
+          <ul>
+            <li>Whether your stack can implement rate limiting efficiently.</li>
+            <li>How much control you need over the algorithm (full control server-side; possibly limited on a third-party gateway).</li>
+            <li>Whether you already run a gateway for auth/whitelisting — bolt it on there.</li>
+            <li>Engineering time available — a commercial gateway is faster to adopt than building your own.</li>
+          </ul>
+        </div>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    C[Client] --> M[Rate Limiter Middleware]
+    M --> Ch{Counter below limit?}
+    Ch -->|Yes| API[API Servers]
+    Ch -->|No, HTTP 429| R[Request rejected]
+    M <-->|INCR / EXPIRE| Redis[(Redis)]
+          </pre>
+          <figcaption>Fig 4-12 — High-level rate limiting architecture</figcaption>
+        </figure>
+        <p class="lede">Example: API allows 2 req/sec; a client sends 3 within a second — the first two pass, the third gets HTTP 429.</p>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Algorithms</h2>
+        <p>Counters live in an <strong>in-memory cache</strong> (Redis is standard) using <code>INCR</code> to bump the count and <code>EXPIRE</code> to auto-clear it — a database would be too slow for this on every request.</p>
+        <div class="algo-grid">
+          <div class="algo-card">
+            <span class="name">Token bucket</span>
+            <p class="mech">Bucket holds up to N tokens, refilled at a fixed rate. Each request spends 1 token; empty bucket → dropped.</p>
+            <span class="params">params: bucket size · refill rate</span>
+            <ul class="pc pro"><li>Simple, memory-efficient</li><li>Allows short bursts</li></ul>
+            <ul class="pc con"><li>Two params can be fiddly to tune</li></ul>
+          </div>
+          <div class="algo-card">
+            <span class="name">Leaking bucket</span>
+            <p class="mech">FIFO queue; requests join if there's room, else dropped. Pulled and processed at a fixed outflow rate.</p>
+            <span class="params">params: queue size · outflow rate</span>
+            <ul class="pc pro"><li>Memory-efficient</li><li>Stable, fixed outflow rate</li></ul>
+            <ul class="pc con"><li>A burst fills the queue with old requests, starving recent ones</li></ul>
+          </div>
+          <div class="algo-card">
+            <span class="name">Fixed window counter</span>
+            <p class="mech">Timeline split into fixed windows, each with its own counter that resets on a new window.</p>
+            <span class="params">params: window size · threshold</span>
+            <ul class="pc pro"><li>Memory-efficient, easy to understand</li></ul>
+            <ul class="pc con"><li>Edge-of-window bursts can let through ~2× quota</li></ul>
+          </div>
+          <div class="algo-card">
+            <span class="name">Sliding window log</span>
+            <p class="mech">Keeps every request timestamp (e.g. Redis sorted set); drops stale ones, checks log size against the limit.</p>
+            <span class="params">params: window size · limit</span>
+            <ul class="pc pro"><li>Very accurate — never exceeds the limit</li></ul>
+            <ul class="pc con"><li>Memory-heavy — even rejected timestamps may linger</li></ul>
+          </div>
+          <div class="algo-card">
+            <span class="name">Sliding window counter</span>
+            <p class="mech">Hybrid: weights the previous window's count by its overlap % with the current rolling window.</p>
+            <span class="params">params: window size · limit</span>
+            <ul class="pc pro"><li>Smooths spikes, memory-efficient</li></ul>
+            <ul class="pc con"><li>Approximation — assumes even distribution in the prior window</li></ul>
+          </div>
+        </div>
+        <p class="lede"><strong>Token bucket</strong> is the most widely used (Amazon, Stripe). <strong>Leaking bucket</strong> is used by Shopify.</p>
+        <div class="callout">
+          <span class="label">Sliding window counter — worked example</span>
+          <p>7 req/min allowed. Previous minute had 5 requests, current minute has 3 so far. A new request lands at the 30% mark of the current minute:</p>
+          <pre class="code">requests in window = current_count + previous_count × overlap%
+                   = 3 + 5 × 0.7
+                   = 6.5  →  rounded down to <span class="k">6</span></pre>
+          <p>6 &lt; 7, so this request is allowed — but the limit hits on the very next one.</p>
+        </div>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> The fixed-window edge problem</h2>
+        <p>Limit: 5 requests/minute. 5 land in <code>[2:00:00, 2:01:00)</code>, 5 more in <code>[2:01:00, 2:02:00)</code> — each window is individually compliant. But the <em>rolling</em> minute <code>[2:00:30, 2:01:30)</code> contains all 10 of them: double the allowed quota.</p>
+        <div class="timeline-wrap">
+          <div class="timeline">
+            <div class="tl-window tl-w1"></div>
+            <div class="tl-window tl-w2"></div>
+            <div class="tl-sliding-label">rolling 1-min window: 10 requests</div>
+            <div class="tl-sliding"></div>
+            <div class="tl-dot" style="left:26.7%"></div>
+            <div class="tl-dot" style="left:31.7%"></div>
+            <div class="tl-dot" style="left:36.7%"></div>
+            <div class="tl-dot" style="left:41.7%"></div>
+            <div class="tl-dot" style="left:46.7%"></div>
+            <div class="tl-dot" style="left:53.3%"></div>
+            <div class="tl-dot" style="left:58.3%"></div>
+            <div class="tl-dot" style="left:63.3%"></div>
+            <div class="tl-dot" style="left:68.3%"></div>
+            <div class="tl-dot" style="left:73.3%"></div>
+            <div class="tl-ticks">
+              <span class="tl-tick" style="left:0%">2:00:00</span>
+              <span class="tl-tick" style="left:50%">2:01:00</span>
+              <span class="tl-tick" style="left:100%">2:02:00</span>
+            </div>
+          </div>
+        </div>
+        <div class="tl-legend">
+          <span><i class="swatch sw-w1"></i>window 1: 5 requests</span>
+          <span><i class="swatch sw-w2"></i>window 2: 5 requests</span>
+          <span><i class="swatch sw-slide"></i>rolling window (the bug)</span>
+          <span><i class="swatch sw-dot"></i>request</span>
+        </div>
+        <p>This is exactly the failure mode <strong>sliding window log</strong> and <strong>sliding window counter</strong> exist to fix.</p>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Deep dive: rules, headers, detailed design</h2>
+        <h3>Rate limiting rules</h3>
+        <p>Often config files on disk (Lyft open-sourced their rate-limiting component as a reference example):</p>
+        <pre class="code">domain: messaging
+descriptors:
+  - key: message_type
+    Value: marketing
+    rate_limit:
+      unit: <span class="k">day</span>
+      requests_per_unit: <span class="k">5</span></pre>
+        <p class="lede">→ max 5 marketing messages/day.</p>
+        <h3>Response headers</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Header</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>X-Ratelimit-Remaining</code></td><td>Remaining allowed requests in the current window</td></tr>
+              <tr><td><code>X-Ratelimit-Limit</code></td><td>Max calls allowed per window</td></tr>
+              <tr><td><code>X-Ratelimit-Retry-After</code></td><td>Seconds to wait before retrying without being throttled</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede">Exceeding the limit returns <strong>HTTP 429</strong>. Depending on the use case, throttled requests can be queued for later instead of dropped (e.g. orders during system overload).</p>
+        <h3>Detailed design</h3>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    Disk[(Rules on disk)] --> W[Worker] --> RC[(Rules cache)]
+    C[Client] --> RL[Rate Limiter Middleware]
+    RL --> RC
+    RL <-->|counters, timestamps| Redis[(Redis)]
+    RL -->|allowed| API[API Servers]
+    RL -->|throttled: 429| Q[Queue or drop]
+          </pre>
+          <figcaption>Fig 4-13 — Detailed design</figcaption>
+        </figure>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Rate limiter in a distributed environment</h2>
+        <p>Single-server rate limiting is easy. Multiple servers introduce two new problems.</p>
+        <h3>Race condition</h3>
+        <p>Naive flow: read counter → check if <code>counter + 1</code> exceeds the threshold → write it back.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+sequenceDiagram
+    participant T1 as Thread 1
+    participant T2 as Thread 2
+    participant R as Redis counter
+
+    Note over R: counter = 3
+    T1->>R: READ counter (3)
+    T2->>R: READ counter (3)
+    T1->>R: WRITE counter = 4
+    T2->>R: WRITE counter = 4
+    Note over R: ends at 4 - should be 5!
+          </pre>
+          <figcaption>Fig 4-14 — Race condition</figcaption>
+        </figure>
+        <p><strong>Locks</strong> fix it but slow the system down noticeably. Common alternatives: atomic <strong>Lua scripts</strong>, or Redis <strong>sorted sets</strong>.</p>
+
+        <h4 style="margin-top:1.4rem;">Understanding the fixes — the book only names these</h4>
+        <p>Every fix below relies on the same trick: don't prevent concurrency, eliminate the gap where it matters — turn the check-and-update into a single indivisible operation on Redis's side. This works because Redis executes commands <strong>single-threaded</strong>: whatever atomic unit you send it runs to completion before Redis looks at any other client's request.</p>
+
+        <div class="callout">
+          <span class="label">Fix 0 — just use INCR, not GET+SET</span>
+          <p>For the plain fixed-window counter, <code>INCR</code> is itself atomic — it increments and returns the new value in one indivisible step. No separate <code>GET</code>, so nothing for a second thread to race against:</p>
+          <pre class="code">newVal = INCR(counter_key)
+if newVal == 1: EXPIRE(counter_key, window_size)
+if newVal &gt; limit: reject <span class="k">else</span>: allow</pre>
+          <p>This is why Chapter 4's "where to store counters" section named exactly <code>INCR</code> and <code>EXPIRE</code> — <code>INCR</code> already solves the race for the simplest algorithm. The book's race-condition example describes someone reinventing <code>INCR</code> badly with a manual GET → compute → SET.</p>
+        </div>
+
+        <div class="callout">
+          <span class="label">Fix 1 — Lua scripting, for when one command isn't enough</span>
+          <p>Token bucket and sliding window counter need to read <em>and</em> write several related pieces of state together — no single Redis command covers that. Ship the whole check-and-update as one Lua script via <code>EVAL</code>. Redis runs the script to completion as one atomic unit, so two concurrent requests against the same key can never both see "tokens &gt; 0" for the last remaining token.</p>
+          <pre class="code"><span class="k">-- token bucket check, runs atomically inside Redis</span>
+local tokens = tonumber(redis.call('GET', KEYS[1]) or ARGV[1])
+if tokens &gt; 0 then
+  redis.call('DECR', KEYS[1])
+  return 1   <span class="k">-- allowed</span>
+else
+  return 0   <span class="k">-- rate limited</span>
+end</pre>
+        </div>
+
+        <div class="callout callout-warn">
+          <span class="label">Fix 2 — sorted sets: the data structure, not the fix by itself</span>
+          <p>A sorted set (ZSET) is the right shape for sliding-window-log: <code>ZADD</code> to record a timestamp, <code>ZREMRANGEBYSCORE</code> to drop stale ones, <code>ZCARD</code> to count survivors. Each command is atomic alone, but three separate round-trips reopen the <em>same race</em> — another client's <code>ZADD</code> can land between your <code>ZREMRANGEBYSCORE</code> and <code>ZCARD</code>. Sorted sets are always paired with a Lua script or a <code>MULTI</code>/<code>EXEC</code> transaction that bundles all three into one atomic unit. The set gives you the data shape; Lua/transactions give you the atomicity.</p>
+        </div>
+
+        <p class="lede"><strong>Why not just a lock?</strong> It works, but rate-limit checks run on every API request — the hottest possible path. Every check now pays for a lock round-trip, and a crash while holding the lock blocks every subsequent request until timeout — a rate limiter bug becomes a full outage. Atomic server-side operations avoid this: there's no lock to acquire or fail to release.</p>
+
+        <h3>Synchronization issue</h3>
+        <p>The web tier is stateless, so the <em>same</em> client's requests can land on different rate limiter instances — without shared state, each instance's local counter is blind to the others.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    U[Client] -->|request A| RL1["Rate Limiter 1 (local counter)"]
+    U -->|request B| RL2["Rate Limiter 2 (local counter)"]
+          </pre>
+          <figcaption>Fig 4-15 — No synchronization: each instance only sees its own traffic</figcaption>
+        </figure>
+        <div class="callout callout-warn">
+          <span class="label">Not the fix</span>
+          <p><strong>Sticky sessions</strong> (always route a client to the same instance) work around this, but aren't scalable or flexible.</p>
+        </div>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    U[Client] -->|request A| RL1[Rate Limiter 1]
+    U -->|request B| RL2[Rate Limiter 2]
+    RL1 <--> Redis[(Centralized Redis)]
+    RL2 <--> Redis
+          </pre>
+          <figcaption>Fig 4-16 — Fix: a shared, centralized data store</figcaption>
+        </figure>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> Performance &amp; monitoring</h2>
+        <ul>
+          <li><strong>Multi-data-center setup</strong> — latency is high for users far from the data center; route to the nearest edge server (Cloudflare ran 194 edge locations as of May 2020).</li>
+          <li><strong>Eventual consistency</strong> for data sync between rate limiter nodes (see Chapter 6's "Consistency" section).</li>
+        </ul>
+        <p>After launch, monitor whether the <strong>algorithm</strong> and the <strong>rules</strong> are actually effective. Rules too strict → valid requests get dropped, relax them. Algorithm falls over during traffic spikes (flash sales) → consider one that tolerates bursts better, like <strong>token bucket</strong>.</p>
+      </section>
+
+      <section id="s9">
+        <h2><span class="sec-num">09</span> Wrap-up talking points</h2>
+        <ul>
+          <li><strong>Hard vs. soft rate limiting</strong> — hard: never exceed the threshold; soft: brief overshoot tolerated.</li>
+          <li><strong>Rate limiting at different OSI layers</strong> — this chapter is layer 7 (application/HTTP). Layer 3 (network) rate limiting by IP is also possible, e.g. via Iptables.</li>
+          <li><strong>Client-side best practices to avoid being rate limited:</strong>
+            <ul>
+              <li>Cache client-side to skip unnecessary repeat calls.</li>
+              <li>Understand the limit; don't burst requests in a short window.</li>
+              <li>Catch exceptions/errors so the client recovers gracefully.</li>
+              <li>Add sufficient backoff time to retry logic.</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> Rate-limiting strategies and techniques — <a href="https://cloud.google.com/solutions/rate-limiting-strategies-techniques">cloud.google.com</a></li>
+          <li><span class="idx">02</span> Twitter rate limits — <a href="https://developer.twitter.com/en/docs/basics/rate-limits">developer.twitter.com</a></li>
+          <li><span class="idx">03</span> Google Docs usage limits — <a href="https://developers.google.com/docs/api/limits">developers.google.com</a></li>
+          <li><span class="idx">04</span> IBM: what are microservices — <a href="https://www.ibm.com/cloud/learn/microservices">ibm.com</a></li>
+          <li><span class="idx">05</span> Throttle API requests (AWS API Gateway) — <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html">docs.aws.amazon.com</a></li>
+          <li><span class="idx">06</span> Stripe rate limiters — <a href="https://stripe.com/blog/rate-limiters">stripe.com</a></li>
+          <li><span class="idx">07</span> Shopify REST Admin API rate limits — <a href="https://help.shopify.com/en/api/reference/rest-admin-api-rate-limits">help.shopify.com</a></li>
+          <li><span class="idx">08</span> Better Rate Limiting With Redis Sorted Sets — <a href="https://engineering.classdojo.com/blog/2015/02/06/rolling-rate-limiter/">engineering.classdojo.com</a></li>
+          <li><span class="idx">09</span> System Design — Rate limiter and Data modelling — <a href="https://medium.com/@saisandeepmopuri/system-design-rate-limiter-and-data-modelling-9304b0d18250">medium.com</a></li>
+          <li><span class="idx">10</span> How Cloudflare built rate limiting at scale — <a href="https://blog.cloudflare.com/counting-things-a-lot-of-different-things/">blog.cloudflare.com</a></li>
+          <li><span class="idx">11</span> Redis — <a href="https://redis.io/">redis.io</a></li>
+          <li><span class="idx">12</span> Lyft rate limiting — <a href="https://github.com/lyft/ratelimit">github.com/lyft/ratelimit</a></li>
+          <li><span class="idx">13</span> Scaling your API with rate limiters — <a href="https://gist.github.com/ptarjan/e38f45f2dfe601419ca3af937fff574d#request-rate-limiter">gist.github.com</a></li>
+          <li><span class="idx">14</span> What is edge computing — <a href="https://www.cloudflare.com/learning/serverless/glossary/what-is-edge-computing/">cloudflare.com</a></li>
+          <li><span class="idx">15</span> Rate Limit Requests with Iptables — <a href="https://blog.programster.org/rate-limit-requests-with-iptables">blog.programster.org</a></li>
+          <li><span class="idx">16</span> OSI model — <a href="https://en.wikipedia.org/wiki/OSI_model#Layer_architecture">en.wikipedia.org</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-04-design-a-rate-limiter.md — jot doubts and follow-ups there.</p>
+</div>

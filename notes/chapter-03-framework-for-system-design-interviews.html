@@ -1,0 +1,366 @@
+<title>A Framework for System Design Interviews</title>
+<style>
+  :root {
+    --paper: #F1F3EC;
+    --paper-raised: #E7EAE0;
+    --paper-sunken: #E9ECE3;
+    --ink: #1C2420;
+    --ink-soft: #4B564F;
+    --ink-faint: #7C877E;
+    --accent: #0E6E62;
+    --accent-strong: #0B554B;
+    --accent-soft: #DCEAE5;
+    --warn: #B5651D;
+    --warn-soft: #F3E3D3;
+    --mid: #6E7F8C;
+    --mid-soft: #E1E6EA;
+    --line: #D3D8CD;
+    --code-bg: #E7EAE1;
+    --shadow: 0 1px 2px rgba(28,36,32,0.06);
+
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814;
+      --paper-raised: #1C231B;
+      --paper-sunken: #191F17;
+      --ink: #E7EAE1;
+      --ink-soft: #A7B0A2;
+      --ink-faint: #6E796E;
+      --accent: #4FBBAA;
+      --accent-strong: #7FD0C2;
+      --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F;
+      --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF;
+      --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226;
+      --code-bg: #1B211A;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814;
+    --paper-raised: #1C231B;
+    --paper-sunken: #191F17;
+    --ink: #E7EAE1;
+    --ink-soft: #A7B0A2;
+    --ink-faint: #6E796E;
+    --accent: #4FBBAA;
+    --accent-strong: #7FD0C2;
+    --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F;
+    --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF;
+    --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226;
+    --code-bg: #1B211A;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+
+  blockquote { margin: 1.2rem 0; padding: 0.9rem 1.15rem; border-left: 3px solid var(--ink-faint); background: var(--paper-raised); border-radius: 0 4px 4px 0; font-style: italic; color: var(--ink-soft); }
+
+  .layout { display: grid; grid-template-columns: 216px minmax(0, 68ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.82rem; border-right: 1px solid var(--line); padding-right: 1.25rem; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+  .toc .sub { border-top: 1px solid var(--line); margin-top: 0.7rem; padding-top: 0.7rem; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.28rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+  h4 { font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); margin: 0 0 0.9rem; }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+  td.num, th.num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  /* stepper */
+  .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 0 0 1.4rem; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
+  .stepper .step { background: var(--paper-raised); padding: 1rem 1.1rem; border-right: 1px solid var(--line); position: relative; }
+  .stepper .step:last-child { border-right: none; }
+  .stepper .step .n { font-family: var(--mono); font-size: 1.3rem; color: var(--accent); display: block; margin-bottom: 0.35rem; }
+  .stepper .step .t { font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink); line-height: 1.4; display: block; }
+
+  /* time bar */
+  .time-bar { display: flex; height: 2.6rem; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 0.9rem; }
+  .time-bar span { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.74rem; color: var(--paper); white-space: nowrap; overflow: hidden; }
+  .time-seg-1 { background: var(--accent); width: 16%; }
+  .time-seg-2 { background: var(--accent-strong); width: 31%; }
+  .time-seg-3 { background: var(--mid); width: 43%; }
+  .time-seg-4 { background: var(--warn); width: 10%; }
+  .time-legend { display: flex; flex-wrap: wrap; gap: 0.9rem 1.6rem; font-family: var(--mono); font-size: 0.78rem; color: var(--ink-soft); margin-bottom: 1.2rem; }
+  .time-legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+  .swatch { width: 9px; height: 9px; border-radius: 2px; display: inline-block; flex: none; }
+  .sw-1 { background: var(--accent); } .sw-2 { background: var(--accent-strong); } .sw-3 { background: var(--mid); } .sw-4 { background: var(--warn); }
+
+  /* dialogue */
+  .dialogue { border: 1px solid var(--line); border-radius: 8px; background: var(--paper-raised); padding: 0.4rem 1.1rem; margin: 0 0 1.2rem; box-shadow: var(--shadow); }
+  .dialogue .turn { display: grid; grid-template-columns: 9ch 1fr; gap: 0.9rem; padding: 0.65rem 0; font-size: 0.93rem; }
+  .dialogue .turn:not(:last-child) { border-bottom: 1px dashed var(--line); }
+  .dialogue .who { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; padding-top: 0.15rem; }
+  .dialogue .who.c { color: var(--accent-strong); }
+  .dialogue .who.i { color: var(--ink-faint); }
+
+  /* dos / don'ts */
+  .dos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+  .dos-grid .callout ul { padding-left: 1.1rem; }
+  .dos-grid .callout li { margin-bottom: 0.55rem; }
+
+  td.axis { font-family: var(--mono); font-size: 0.8rem; color: var(--accent-strong); white-space: nowrap; }
+
+  .cat-grid { list-style: none; margin: 0 0 1.2rem; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0.8rem; counter-reset: cat; }
+  .cat-grid li { counter-increment: cat; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 0.85rem 1rem; box-shadow: var(--shadow); position: relative; padding-left: 2.6rem; font-size: 0.88rem; color: var(--ink-soft); }
+  .cat-grid li::before { content: counter(cat); position: absolute; left: 0.85rem; top: 0.8rem; font-family: var(--mono); font-weight: 600; color: var(--accent); }
+  .cat-grid strong { color: var(--ink); }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.88rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc .sub { border-top: none; margin-top: 0; padding-top: 0; border-left: 1px solid var(--line); padding-left: 0.7rem; }
+    .toc a { white-space: nowrap; }
+    .stepper { grid-template-columns: 1fr; }
+    .stepper .step { border-right: none; border-bottom: 1px solid var(--line); }
+    .stepper .step:last-child { border-bottom: none; }
+    .dialogue .turn { grid-template-columns: 1fr; gap: 0.25rem; }
+    .dos-grid { grid-template-columns: 1fr; }
+    .cat-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 3 — A Framework for System Design Interviews</h1>
+    <p class="dek">No one expects a production-grade system in 45 minutes. The interview simulates two engineers collaborating on an ambiguous problem — the process you demonstrate matters more than the design you land on.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>What's evaluated</a></li>
+        <li><a href="#s2"><span class="num">02</span>Step 1 — Scope</a></li>
+        <li><a href="#s3"><span class="num">03</span>Step 2 — High-level</a></li>
+        <li><a href="#s4"><span class="num">04</span>Step 3 — Deep dive</a></li>
+        <li><a href="#s5"><span class="num">05</span>Step 4 — Wrap up</a></li>
+        <li><a href="#s6"><span class="num">06</span>Time allocation</a></li>
+        <li><a href="#s7"><span class="num">07</span>Dos &amp; Don'ts</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> What interviewers are actually evaluating</h2>
+        <p>Not just technical design skill. A good session reads for the ability to <strong>collaborate</strong>, work under pressure, and <strong>resolve ambiguity</strong> constructively — and the ability to <strong>ask good questions</strong>, which many interviewers specifically look for.</p>
+        <blockquote>
+          Don't be like Jimmy — the student who always answers first, whether or not he actually knows the answer. Answering fast with no clarification isn't a bonus; this isn't a trivia contest, and there's no single right answer.
+        </blockquote>
+        <div class="callout callout-warn">
+          <span class="label">Red flags</span>
+          <ul>
+            <li><strong>Over-engineering</strong> — chasing design purity, ignoring tradeoffs and their compounding real-world cost.</li>
+            <li>Narrow-mindedness, stubbornness, resisting feedback.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="framework-intro">
+        <div class="stepper">
+          <div class="step"><span class="n">01</span><span class="t">Understand the problem &amp; establish scope</span></div>
+          <div class="step"><span class="n">02</span><span class="t">Propose high-level design, get buy-in</span></div>
+          <div class="step"><span class="n">03</span><span class="t">Design deep dive</span></div>
+          <div class="step"><span class="n">04</span><span class="t">Wrap up</span></div>
+        </div>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Step 1 — Understand the problem, establish scope</h2>
+        <p>Slow down. Ask before proposing. If the interviewer asks <em>you</em> to make an assumption instead of answering directly, <strong>write it down</strong> — you'll need it later.</p>
+        <h3>Questions worth asking</h3>
+        <ul>
+          <li>What specific features are we building?</li>
+          <li>How many users does the product have?</li>
+          <li>How fast is the company expecting to scale — 3 / 6 / 12 months out?</li>
+          <li>What's the existing tech stack — what can we leverage instead of building from scratch?</li>
+        </ul>
+        <h3>Example — clarifying "design a news feed system"</h3>
+        <div class="dialogue">
+          <div class="turn"><span class="who c">Candidate</span><span>Is this a mobile app, web app, or both?</span></div>
+          <div class="turn"><span class="who i">Interviewer</span><span>Both.</span></div>
+          <div class="turn"><span class="who c">Candidate</span><span>What are the most important features?</span></div>
+          <div class="turn"><span class="who i">Interviewer</span><span>Ability to make a post and see friends' news feed.</span></div>
+          <div class="turn"><span class="who c">Candidate</span><span>Reverse-chronological, or a weighted/ranked order?</span></div>
+          <div class="turn"><span class="who i">Interviewer</span><span>Keep it simple — reverse chronological.</span></div>
+          <div class="turn"><span class="who c">Candidate</span><span>How many friends can a user have?</span></div>
+          <div class="turn"><span class="who i">Interviewer</span><span>5,000.</span></div>
+          <div class="turn"><span class="who c">Candidate</span><span>What's the traffic volume?</span></div>
+          <div class="turn"><span class="who i">Interviewer</span><span>10 million daily active users.</span></div>
+          <div class="turn"><span class="who c">Candidate</span><span>Text only, or media too?</span></div>
+          <div class="turn"><span class="who i">Interviewer</span><span>Images and videos too.</span></div>
+        </div>
+
+        <h3>Why these questions matter</h3>
+        <p>Each one collapses a specific axis of the design space, before any box gets drawn:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Question</th><th>Design axis</th><th>What changes with a different answer</th></tr></thead>
+            <tbody>
+              <tr><td>Mobile, web, or both?</td><td class="axis">Client surface</td><td>"Both" forces a platform-agnostic API instead of server-rendered pages, plus push notifications and bandwidth-conscious media delivery for mobile.</td></tr>
+              <tr><td>Most important features?</td><td class="axis">Scope</td><td>Without this, "news feed system" is unbounded — comments, likes, notifications, search could all be in scope. This pins it to exactly two flows: publish + retrieve.</td></tr>
+              <tr><td>Chronological or ranked?</td><td class="axis">Behavior / complexity</td><td>Ranked (EdgeRank-style) needs a whole scoring/ML subsystem — arguably a separate interview by itself. Chronological is just "sort by timestamp." Same feature, order-of-magnitude difference in what gets built.</td></tr>
+              <tr><td>How many friends can a user have?</td><td class="axis">Fan-out shape</td><td>Bounded (5,000) makes fan-out-on-write cheap and predictable — one post, ≤5,000 writes. Unbounded (Twitter-style followers) breaks that for celebrities, forcing a hybrid push/pull model. This decides the write-path architecture (Chapter 11).</td></tr>
+              <tr><td>Traffic volume?</td><td class="axis">Scale inputs</td><td>Feeds Chapter 2's back-of-envelope math directly → QPS/storage estimates → whether sharding, replication, or a cache tier (Chapter 1) are needed. At 10M DAU × up to 5,000 friends/post, synchronous fan-out would spike hard — why real designs push it through an async message queue.</td></tr>
+              <tr><td>Text only, or media too?</td><td class="axis">Data shape</td><td>Media needs object storage + a CDN (Chapter 1) and probably async transcoding/thumbnailing; text alone could live in a database. Storage math shifts by orders of magnitude — the same asymmetry as Chapter 2's Twitter example (140 B text vs. 1 MB media).</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>A sharper set of categories to ask through</h3>
+        <ol class="cat-grid">
+          <li><strong>Scope</strong> — what does the system do, at minimum?</li>
+          <li><strong>Behavior / complexity</strong> — for a feature that exists, how sophisticated does it need to be?</li>
+          <li><strong>Fan-out / relationship shape</strong> — how many things does <em>one</em> action touch? Bounded vs. unbounded is what actually decides push vs. pull architecture — a different question from raw user count.</li>
+          <li><strong>Scale inputs</strong> — the raw numbers (DAU, actions/user/day, size/action) that feed the Chapter 2 math. The trigger for "this needs a big-scale design" isn't a headcount threshold to eyeball — it's what the QPS/storage numbers come out to once you run the math.</li>
+        </ol>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Step 2 — Propose high-level design, get buy-in</h2>
+        <p>Reach agreement on a blueprint — treat the interviewer as a teammate, not an examiner.</p>
+        <ul>
+          <li>Sketch box diagrams: clients, APIs, web servers, data stores, cache, CDN, message queue.</li>
+          <li>Run back-of-the-envelope math to sanity-check the blueprint against scale constraints (<a href="#">Chapter 2</a>). Narrate it out loud.</li>
+          <li>Walk through concrete use cases — this surfaces edge cases you haven't considered.</li>
+        </ul>
+        <div class="callout">
+          <span class="label">How low-level should this get?</span>
+          <p>Depends on the problem. API endpoints and DB schema are too granular for "design Google Search" — but entirely fair game for "design the backend of a multiplayer poker game." Ask, or read the interviewer's cues.</p>
+        </div>
+        <div class="callout">
+          <span class="label">Example — news feed, high level</span>
+          <p>Splits into two flows: <strong>feed publishing</strong> (a post is written to cache/DB, then fanned out into friends' news feeds) and <strong>news feed building</strong> (aggregate friends' posts in reverse-chronological order).</p>
+        </div>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Step 3 — Design deep dive</h2>
+        <p>By now: scope is agreed, the high-level blueprint is sketched and has feedback, and you have hints on where to go deeper. Work with the interviewer to <strong>identify and prioritize</strong> which components deserve it — it varies:</p>
+        <ul>
+          <li>Senior-level interviews often push toward performance characteristics: bottlenecks, resource estimation.</li>
+          <li>URL shortener → the hash function design is the interesting part.</li>
+          <li>Chat system → latency reduction and online/offline status are the interesting parts.</li>
+        </ul>
+        <div class="callout callout-warn">
+          <span class="label">Manage your time</span>
+          <p>It's easy to get pulled into details that don't demonstrate ability — going deep on Facebook's EdgeRank ranking algorithm burns precious time without proving you can design a scalable system.</p>
+        </div>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Step 4 — Wrap up</h2>
+        <ul>
+          <li>Identify bottlenecks and discuss improvements. <strong>Never claim the design is perfect</strong> — there's always something to improve, and this is your chance to show critical thinking.</li>
+          <li>Recap the design — especially useful after a long session with multiple proposed approaches.</li>
+          <li>Talk through error cases: server failure, network loss, etc.</li>
+          <li>Mention operational concerns: metrics/error-log monitoring, rollout strategy.</li>
+          <li>Discuss the next scale curve — e.g. "this supports 1M users; what changes to reach 10M?"</li>
+          <li>Propose further refinements you'd make given more time.</li>
+        </ul>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Time allocation</h2>
+        <p class="lede">A rough guide for a 45-minute session — the real split depends on the problem's scope and the interviewer's focus.</p>
+        <div class="time-bar">
+          <span class="time-seg-1">3–10m</span>
+          <span class="time-seg-2">10–15m</span>
+          <span class="time-seg-3">10–25m</span>
+          <span class="time-seg-4">3–5m</span>
+        </div>
+        <div class="time-legend">
+          <span><i class="swatch sw-1"></i>Step 1 — Scope</span>
+          <span><i class="swatch sw-2"></i>Step 2 — High-level</span>
+          <span><i class="swatch sw-3"></i>Step 3 — Deep dive</span>
+          <span><i class="swatch sw-4"></i>Step 4 — Wrap up</span>
+        </div>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Dos &amp; Don'ts</h2>
+        <div class="dos-grid">
+          <div class="callout">
+            <span class="label">Dos</span>
+            <ul>
+              <li>Always ask for clarification — don't assume your assumption is correct.</li>
+              <li>Understand the real requirements before designing.</li>
+              <li>Think out loud — communicate constantly.</li>
+              <li>Suggest multiple approaches where relevant.</li>
+              <li>Once the blueprint is agreed, drill into the most critical component first.</li>
+              <li>Bounce ideas off the interviewer like a teammate.</li>
+              <li>Never give up.</li>
+            </ul>
+          </div>
+          <div class="callout callout-warn">
+            <span class="label">Don'ts</span>
+            <ul>
+              <li>Don't be unprepared for typical interview questions.</li>
+              <li>Don't jump to a solution before clarifying requirements.</li>
+              <li>Don't go deep on one component early — high-level first, then drill down.</li>
+              <li>Don't hesitate to ask for hints if stuck.</li>
+              <li>Don't think in silence.</li>
+              <li>Don't assume you're done once you've given a design — ask for feedback early and often.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-03-framework-for-system-design-interviews.md — jot doubts and follow-ups there.</p>
+</div>

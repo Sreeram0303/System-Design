@@ -1,0 +1,703 @@
+<title>Scale From Zero to Millions</title>
+<style>
+  :root {
+    --paper: #F1F3EC;
+    --paper-raised: #E7EAE0;
+    --paper-sunken: #E9ECE3;
+    --ink: #1C2420;
+    --ink-soft: #4B564F;
+    --ink-faint: #7C877E;
+    --accent: #0E6E62;
+    --accent-strong: #0B554B;
+    --accent-soft: #DCEAE5;
+    --warn: #B5651D;
+    --warn-soft: #F3E3D3;
+    --line: #D3D8CD;
+    --code-bg: #E7EAE1;
+    --shadow: 0 1px 2px rgba(28,36,32,0.06);
+
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814;
+      --paper-raised: #1C231B;
+      --paper-sunken: #191F17;
+      --ink: #E7EAE1;
+      --ink-soft: #A7B0A2;
+      --ink-faint: #6E796E;
+      --accent: #4FBBAA;
+      --accent-strong: #7FD0C2;
+      --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F;
+      --warn-soft: rgba(226,146,79,0.14);
+      --line: #2B3226;
+      --code-bg: #1B211A;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814;
+    --paper-raised: #1C231B;
+    --paper-sunken: #191F17;
+    --ink: #E7EAE1;
+    --ink-soft: #A7B0A2;
+    --ink-faint: #6E796E;
+    --accent: #4FBBAA;
+    --accent-strong: #7FD0C2;
+    --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F;
+    --warn-soft: rgba(226,146,79,0.14);
+    --line: #2B3226;
+    --code-bg: #1B211A;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    color: var(--accent-strong);
+  }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 3.5rem 1.75rem 5rem;
+  }
+
+  .masthead {
+    max-width: 66ch;
+    margin: 0 auto 3rem;
+    text-align: left;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.85rem;
+    text-wrap: balance;
+  }
+
+  .dek {
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 58ch;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 216px minmax(0, 68ch);
+    justify-content: center;
+    gap: 3.25rem;
+    align-items: start;
+  }
+
+  .toc {
+    position: sticky;
+    top: 2rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    border-right: 1px solid var(--line);
+    padding-right: 1.25rem;
+  }
+
+  .toc-label {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-size: 0.72rem;
+    margin: 0 0 0.9rem;
+  }
+
+  .toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .toc a {
+    display: flex;
+    gap: 0.6rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    line-height: 1.35;
+  }
+
+  .toc a:hover { color: var(--accent-strong); }
+
+  .toc .num {
+    color: var(--ink-faint);
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .toc .sub {
+    border-top: 1px solid var(--line);
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+  }
+
+  main { min-width: 0; }
+
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+
+  h2 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 1.28rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sec-num {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h3 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 0.98rem;
+    letter-spacing: 0.01em;
+    margin: 1.6rem 0 0.6rem;
+    color: var(--ink);
+  }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  li > ul { margin-top: 0.4rem; }
+
+  strong { color: var(--ink); font-weight: 600; }
+
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1.2rem;
+    font-size: 0.92rem;
+  }
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  .table-wrap table { margin-bottom: 0; }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  th {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  .callout {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    padding: 0.95rem 1.15rem;
+    margin: 0 0 1.2rem;
+  }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+
+  .callout-warn {
+    background: var(--warn-soft);
+    border-left-color: var(--warn);
+  }
+
+  .callout .label {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-strong);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram {
+    margin: 1.4rem 0 1.6rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.1rem 1rem 0.85rem;
+    box-shadow: var(--shadow);
+  }
+
+  figure.diagram pre.mermaid {
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+  }
+
+  figcaption {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: center;
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem 1.5rem;
+  }
+  .checklist li {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .checklist .mark {
+    font-family: var(--mono);
+    color: var(--accent);
+    flex: none;
+  }
+
+  ol.refs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+  }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx {
+    font-family: var(--mono);
+    color: var(--ink-faint);
+    flex: none;
+  }
+  ol.refs a { word-break: break-all; }
+
+  .colophon {
+    max-width: 68ch;
+    margin: 3.5rem auto 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    text-align: center;
+  }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc {
+      position: static;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+      padding: 0 0 1rem;
+      overflow-x: auto;
+    }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc .sub { border-top: none; margin-top: 0; padding-top: 0; border-left: 1px solid var(--line); padding-left: 0.7rem; }
+    .toc a { white-space: nowrap; }
+    .checklist { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 1 — Scale From Zero to Millions of Users</h1>
+    <p class="dek">Everything starts on one server. This chapter grows it, tier by tier, into an architecture built for millions — each addition below exists to fix a specific failure the previous stage introduced.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Single server</a></li>
+        <li><a href="#s2"><span class="num">02</span>Separate the database</a></li>
+        <li><a href="#s3"><span class="num">03</span>Vertical vs horizontal</a></li>
+        <li><a href="#s4"><span class="num">04</span>Load balancer</a></li>
+        <li><a href="#s5"><span class="num">05</span>Replication</a></li>
+        <li><a href="#s6"><span class="num">06</span>Cache</a></li>
+        <li><a href="#s7"><span class="num">07</span>CDN</a></li>
+        <li><a href="#s8"><span class="num">08</span>Stateless web tier</a></li>
+        <li><a href="#s9"><span class="num">09</span>Multi-data center</a></li>
+        <li><a href="#s10"><span class="num">10</span>Message queue</a></li>
+        <li><a href="#s11"><span class="num">11</span>Logging &amp; metrics</a></li>
+        <li><a href="#s12"><span class="num">12</span>Sharding</a></li>
+        <li class="sub"><a href="#summary">Summary checklist</a></li>
+        <li><a href="#refs">Reference materials</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Single server setup</h2>
+        <p>Everything — web app, database, cache — runs on one machine. Simple, and the natural place to start.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+sequenceDiagram
+    participant U as User (browser/app)
+    participant D as DNS
+    participant S as Web Server
+
+    U->>D: Resolve api.mysite.com
+    D-->>U: IP 15.125.23.214
+    U->>S: HTTP request (using IP)
+    S-->>U: HTML page / JSON response
+          </pre>
+          <figcaption>Fig 1-2 — Request flow</figcaption>
+        </figure>
+        <p><strong>Traffic sources:</strong></p>
+        <ul>
+          <li><strong>Web app</strong> — server-side code (Java, Python …) handles logic and storage; client-side HTML/JS handles presentation.</li>
+          <li><strong>Mobile app</strong> — talks HTTP to the server; JSON is the typical response format.</li>
+        </ul>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Separate the database out</h2>
+        <p>One server becomes two — a <strong>web tier</strong> and a <strong>data tier</strong> — so each can scale independently.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th></th><th>Relational (SQL / RDBMS)</th><th>Non-relational (NoSQL)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Examples</td><td>MySQL, PostgreSQL, Oracle</td><td>DynamoDB, Cassandra, HBase, CouchDB, Neo4j</td></tr>
+              <tr><td>Structure</td><td>Tables + rows, supports joins</td><td>Key-value, document, column, graph — joins generally unsupported</td></tr>
+              <tr><td>Default choice</td><td>Yes — 40+ years mature, well understood</td><td>Reach for it when SQL doesn't fit</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <span class="label">Reach for NoSQL when</span>
+          <ul>
+            <li>The application requires super-low latency.</li>
+            <li>Data is unstructured, or has no relational structure.</li>
+            <li>You only need to (de)serialize data — JSON, XML, YAML.</li>
+            <li>You need to store a massive volume of data.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Vertical vs horizontal scaling</h2>
+        <ul>
+          <li><strong>Vertical scaling ("scale up")</strong> — add more CPU/RAM to one machine. Simple, but:
+            <ul>
+              <li>Hits a hard hardware ceiling.</li>
+              <li>No failover or redundancy — one box dying takes the whole app down.</li>
+            </ul>
+          </li>
+          <li><strong>Horizontal scaling ("scale out")</strong> — add more machines. Preferred at scale.</li>
+        </ul>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Load balancer</h2>
+        <p>Distributes incoming traffic across a pool of web servers. Users hit the load balancer's <strong>public IP</strong>; it talks to backend servers over <strong>private IPs</strong>, unreachable from the internet.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    U1[User] -->|public IP| LB[Load Balancer]
+    U2[User] -->|public IP| LB
+    LB -->|private IP| S1[Web Server 1]
+    LB -->|private IP| S2[Web Server 2]
+    S1 --> DB[(Database)]
+    S2 --> DB
+          </pre>
+          <figcaption>Fig 1-4 — Load-balanced web tier</figcaption>
+        </figure>
+        <p>Solves two problems at once:</p>
+        <ul>
+          <li><strong>Failover</strong> — if server 1 dies, traffic reroutes to server 2; a healthy replacement is added back to the pool.</li>
+          <li><strong>Scale</strong> — growing traffic just means adding more servers behind the load balancer.</li>
+        </ul>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Database replication</h2>
+        <p><strong>Master</strong> handles writes (insert / update / delete). <strong>Slaves</strong> copy data from the master and serve reads only — usually many more slaves than masters, since read:write ratios skew heavily toward reads.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    W[Web Server] -->|writes / updates / deletes| M[(Master DB)]
+    W -->|reads| S1[(Slave DB 1)]
+    W -->|reads| S2[(Slave DB 2)]
+    M -.replicates.-> S1
+    M -.replicates.-> S2
+          </pre>
+          <figcaption>Fig 1-5/1-6 — Master/slave replication</figcaption>
+        </figure>
+        <p><strong>Benefits:</strong> better performance (reads and writes are parallelized across nodes), reliability (data survives a single node/data-center disaster), high availability (the app stays up even if one DB node is offline).</p>
+        <div class="callout callout-warn">
+          <span class="label">Failure handling</span>
+          <ul>
+            <li>Slave goes down → reads temporarily shift to the master (or another healthy slave) until a replacement slave is provisioned.</li>
+            <li>Master goes down → a slave is promoted to master. Tricky in practice: the promoted slave's data may be stale, so recovery scripts patch the gap. Multi-master and circular replication exist, but are more complex setups.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Cache</h2>
+        <p>A fast, temporary, in-memory store for expensive or frequently-requested responses, sitting between the web tier and the database.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    C[Client Request] --> W[Web Server]
+    W --> Ch{In cache?}
+    Ch -->|Hit| R1[Return cached data]
+    Ch -->|Miss| DB[(Database)]
+    DB --> P[Populate cache]
+    P --> R2[Return data]
+          </pre>
+          <figcaption>Fig 1-7 — Read-through cache</figcaption>
+        </figure>
+        <h3>Design considerations</h3>
+        <ul>
+          <li><strong>When to use</strong> — best for read-heavy, write-light data. Cache is volatile (a restart wipes it), so never treat it as the source of truth.</li>
+          <li><strong>Expiration policy</strong> — too short thrashes the DB with reloads; too long serves stale data.</li>
+          <li><strong>Consistency</strong> — cache and DB writes aren't in one transaction, so they can drift, especially across regions (see Facebook's <em>Scaling Memcache</em> paper).</li>
+          <li><strong>Avoiding SPOF</strong> — a single cache node is a single point of failure; run several across data centers, and overprovision memory as a buffer.</li>
+          <li><strong>Eviction policy</strong> — once full: <strong>LRU</strong> is most common; LFU and FIFO are alternatives.</li>
+        </ul>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Content delivery network (CDN)</h2>
+        <p>Geographically distributed servers caching <strong>static</strong> content — images, JS, CSS, video. The closer the edge server, the faster the load.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+sequenceDiagram
+    participant A as User A
+    participant CDN
+    participant O as Origin (web server / S3)
+    participant B as User B
+
+    A->>CDN: GET image.png
+    CDN->>O: Cache miss - fetch file
+    O-->>CDN: image.png + TTL
+    CDN-->>A: image.png (now cached)
+    B->>CDN: GET image.png
+    CDN-->>B: image.png (served from cache, TTL not expired)
+          </pre>
+          <figcaption>Fig 1-10 — CDN workflow</figcaption>
+        </figure>
+        <div class="callout callout-warn">
+          <span class="label">Considerations</span>
+          <ul>
+            <li><strong>Cost</strong> — you pay for data transfer; don't cache rarely-used assets.</li>
+            <li><strong>Cache expiry</strong> — same too-long / too-short trade-off as regular caching.</li>
+            <li><strong>CDN fallback</strong> — detect outages and fall back to the origin.</li>
+            <li><strong>Invalidation</strong> — call the vendor's invalidation API, or use object versioning, e.g. <code>image.png?v=2</code>, to force a fresh fetch.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> Stateless web tier</h2>
+        <p><strong>Stateful</strong> servers remember client data (like a session) between requests, which forces <em>sticky sessions</em> — every request from a user must reach the same server — adding load-balancer overhead and complicating scaling and failure handling.</p>
+        <p><strong>Stateless</strong> servers hold no session state themselves; it moves to a shared data store (relational DB, Redis/Memcached, or NoSQL — NoSQL is common here for easy scaling).</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    U[User] --> LB[Load Balancer]
+    LB --> S1[Web Server 1]
+    LB --> S2[Web Server 2]
+    LB --> S3[Web Server 3]
+    S1 --> SD[(Shared session store)]
+    S2 --> SD
+    S3 --> SD
+          </pre>
+          <figcaption>Fig 1-13/1-14 — Stateless web tier</figcaption>
+        </figure>
+        <p><strong>Payoff:</strong> any server can handle any request, which makes robust <strong>autoscaling</strong> — adding or removing web servers automatically based on load — straightforward.</p>
+      </section>
+
+      <section id="s9">
+        <h2><span class="sec-num">09</span> Multiple data centers</h2>
+        <p>Once traffic is international, a single data center isn't enough for availability or latency.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    U1[US User] --> G{geoDNS}
+    U2[EU User] --> G
+    G -->|x% traffic| DC1[Data Center: US-East]
+    G -->|100-x% traffic| DC2[Data Center: US-West]
+    DC1 <-.data sync.-> DC2
+          </pre>
+          <figcaption>Fig 1-15/1-16 — Geo-routed data centers</figcaption>
+        </figure>
+        <p>If DC2 goes down, geoDNS routes 100% of traffic to DC1 — assuming data is kept in sync.</p>
+        <h3>Challenges to solve</h3>
+        <ul>
+          <li><strong>Traffic redirection</strong> — geoDNS routes users to the nearest healthy data center.</li>
+          <li><strong>Data synchronization</strong> — a failover could route users to a data center missing their data. Common fix: replicate data across data centers (e.g. Netflix's async multi-DC replication).</li>
+          <li><strong>Test &amp; deployment</strong> — automated, consistent deployment across every data center.</li>
+        </ul>
+      </section>
+
+      <section id="s10">
+        <h2><span class="sec-num">10</span> Message queue</h2>
+        <p>A durable component enabling <strong>asynchronous</strong> communication and decoupling. <strong>Producers</strong> publish messages; <strong>consumers</strong> read and act on them — neither needs the other online at the same moment, and each scales independently.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    P[Producer: Web Server] -->|publish job| Q[[Message Queue]]
+    Q -->|consume job| C1[Worker 1]
+    Q -->|consume job| C2[Worker 2]
+    C1 --> O[Processed photo]
+    C2 --> O
+          </pre>
+          <figcaption>Fig 1-17/1-18 — Async job processing</figcaption>
+        </figure>
+        <p><strong>Example:</strong> photo customization — crop, sharpen, blur. Web servers publish jobs to the queue; workers pull and process them asynchronously. Queue backing up → add workers; queue mostly empty → scale workers down.</p>
+      </section>
+
+      <section id="s11">
+        <h2><span class="sec-num">11</span> Logging, metrics, automation</h2>
+        <p>Not critical for a small site — essential once the business is large.</p>
+        <ul>
+          <li><strong>Logging</strong> — monitor error logs per-server, or aggregate them centrally for easier search and analysis.</li>
+          <li><strong>Metrics</strong> —
+            <ul>
+              <li>Host-level: CPU, memory, disk I/O.</li>
+              <li>Aggregated: performance of the whole DB tier, cache tier, etc.</li>
+              <li>Business: DAU, retention, revenue.</li>
+            </ul>
+          </li>
+          <li><strong>Automation</strong> — CI verifies every check-in; automated build/test/deploy pipelines catch problems early and boost productivity.</li>
+        </ul>
+      </section>
+
+      <section id="s12">
+        <h2><span class="sec-num">12</span> Database scaling</h2>
+        <h3>Vertical scaling</h3>
+        <p>A bigger single DB server — AWS RDS offers instances with up to 24 TB of RAM. Sometimes sufficient: Stack Overflow ran on one master DB in 2013 with 10M+ monthly uniques. Drawbacks: a hardware ceiling, a bigger single-point-of-failure risk, and high cost.</p>
+        <h3>Horizontal scaling — sharding</h3>
+        <p>Split one large database into smaller <strong>shards</strong>, each holding a unique slice of the data but sharing the same schema. A <strong>hash function</strong> on the <strong>sharding key</strong> (partition key) routes each query to the right shard.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    Q["Query: user_id = 7"] --> H["Hash: user_id % 4"]
+    H -->|0| S0[(Shard 0)]
+    H -->|1| S1[(Shard 1)]
+    H -->|2| S2[(Shard 2)]
+    H -->|3| S3[(Shard 3 - match)]
+          </pre>
+          <figcaption>Fig 1-21 — Sharding by user_id</figcaption>
+        </figure>
+        <p>The most important property of a sharding key: it should distribute data <strong>evenly</strong> across shards.</p>
+        <div class="callout callout-warn">
+          <span class="label">New problems sharding introduces</span>
+          <ul>
+            <li><strong>Resharding</strong> — needed when a shard fills up, or uneven distribution causes "shard exhaustion" faster on some shards. Requires changing the hash function and moving data; <strong>consistent hashing</strong> (Chapter 5) is the standard fix.</li>
+            <li><strong>Celebrity / hotspot key problem</strong> — heavy access concentrated on one shard (e.g. several celebrities' data landing on the same shard) overloads it. Fix: dedicate a shard per hot key, and partition further if needed.</li>
+            <li><strong>Joins &amp; denormalization</strong> — cross-shard joins are hard or impossible; the common workaround is denormalizing so a query only needs a single table.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="summary">
+        <h2>Summary checklist</h2>
+        <p class="lede">How we scaled a single server to serve millions of users:</p>
+        <ul class="checklist">
+          <li><span class="mark">✓</span> Keep the web tier stateless</li>
+          <li><span class="mark">✓</span> Build redundancy at every tier</li>
+          <li><span class="mark">✓</span> Cache data as much as possible</li>
+          <li><span class="mark">✓</span> Support multiple data centers</li>
+          <li><span class="mark">✓</span> Host static assets on a CDN</li>
+          <li><span class="mark">✓</span> Scale the data tier by sharding</li>
+          <li><span class="mark">✓</span> Split tiers into individual services</li>
+          <li><span class="mark">✓</span> Monitor the system and automate</li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> Hypertext Transfer Protocol — <a href="https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol">en.wikipedia.org/wiki/Hypertext_Transfer_Protocol</a></li>
+          <li><span class="idx">02</span> Should you go Beyond Relational Databases? — <a href="https://blog.teamtreehouse.com/should-you-go-beyond-relational-databases">blog.teamtreehouse.com</a></li>
+          <li><span class="idx">03</span> Replication (computing) — <a href="https://en.wikipedia.org/wiki/Replication_(computing)">en.wikipedia.org</a></li>
+          <li><span class="idx">04</span> Multi-master replication — <a href="https://en.wikipedia.org/wiki/Multi-master_replication">en.wikipedia.org</a></li>
+          <li><span class="idx">05</span> NDB Cluster Replication: Multi-Master and Circular — <a href="https://dev.mysql.com/doc/refman/5.7/en/mysql-cluster-replication-multi-master.html">dev.mysql.com</a></li>
+          <li><span class="idx">06</span> Caching Strategies and How to Choose the Right One — <a href="https://codeahoy.com/2017/08/11/caching-strategies-and-how-to-choose-the-right-one/">codeahoy.com</a></li>
+          <li><span class="idx">07</span> R. Nishtala, "Scaling Memcache at Facebook", NSDI '13</li>
+          <li><span class="idx">08</span> Single point of failure — <a href="https://en.wikipedia.org/wiki/Single_point_of_failure">en.wikipedia.org</a></li>
+          <li><span class="idx">09</span> Amazon CloudFront Dynamic Content Delivery — <a href="https://aws.amazon.com/cloudfront/dynamic-content/">aws.amazon.com</a></li>
+          <li><span class="idx">10</span> Configure Sticky Sessions for Your Classic Load Balancer — <a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-sticky-sessions.html">docs.aws.amazon.com</a></li>
+          <li><span class="idx">11</span> Active-Active for Multi-Regional Resiliency — <a href="https://netflixtechblog.com/active-active-for-multi-regional-resiliency-c47719f6685b">netflixtechblog.com</a></li>
+          <li><span class="idx">12</span> Amazon EC2 High Memory Instances — <a href="https://aws.amazon.com/ec2/instance-types/high-memory/">aws.amazon.com</a></li>
+          <li><span class="idx">13</span> What it takes to run Stack Overflow — <a href="http://nickcraver.com/blog/2013/11/22/what-it-takes-to-run-stack-overflow">nickcraver.com</a></li>
+          <li><span class="idx">14</span> What The Heck Are You Actually Using NoSQL For — <a href="http://highscalability.com/blog/2010/12/6/what-the-heck-are-you-actually-using-nosql-for.html">highscalability.com</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-01-scale-from-zero-to-millions.md — jot doubts and follow-ups there.</p>
+</div>

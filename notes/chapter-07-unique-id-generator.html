@@ -1,0 +1,284 @@
+<title>Unique ID Generator</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --plum: #7A5A8C; --plum-soft: #EAE1EF;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --plum: #B79BCB; --plum-soft: rgba(183,155,203,0.16);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --plum: #B79BCB; --plum-soft: rgba(183,155,203,0.16);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+
+  .page { max-width: 1140px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 70ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.8rem; border-right: 1px solid var(--line); padding-right: 1.25rem; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+  td.center, th.center { text-align: center; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  /* approach cards */
+  .approach-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 0 0 1.2rem; }
+  .approach-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.1rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 0.5rem; }
+  .approach-card.winner { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+  .approach-card .name { font-family: var(--mono); font-weight: 600; font-size: 0.92rem; color: var(--accent-strong); display: flex; justify-content: space-between; align-items: center; }
+  .approach-card .tag { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; background: var(--accent); color: var(--paper); padding: 0.15rem 0.5rem; border-radius: 999px; }
+  .approach-card p { font-size: 0.86rem; color: var(--ink-soft); margin: 0; }
+  .approach-card .pc { font-size: 0.8rem; margin: 0; padding-left: 1.1rem; }
+  .approach-card .pc.con li { color: var(--warn); }
+  .approach-card .pc.pro li { color: var(--accent-strong); }
+
+  /* bit field diagram */
+  .bitfield-wrap { margin: 0 0 0.8rem; }
+  .bitfield { display: flex; height: 3.2rem; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .bitfield .seg { display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.72rem; color: var(--paper); font-weight: 600; overflow: hidden; white-space: nowrap; }
+  .bf-sign { background: var(--ink-faint); flex: 1.5625; }
+  .bf-ts { background: var(--accent); flex: 64.0625; }
+  .bf-dc { background: var(--mid); flex: 7.8125; }
+  .bf-mc { background: var(--plum); flex: 7.8125; }
+  .bf-seq { background: var(--warn); flex: 18.75; }
+  .bitfield-legend { display: flex; flex-wrap: wrap; gap: 0.7rem 1.3rem; font-family: var(--mono); font-size: 0.75rem; color: var(--ink-soft); margin: 0.8rem 0 1.2rem; }
+  .bitfield-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .bf-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+
+  /* derivation (math) */
+  .derivation { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 0 0 1.2rem; box-shadow: var(--shadow); }
+  .derivation h4 { font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); margin: 0 0 0.9rem; }
+  .derivation ol { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .derivation li { counter-increment: step; display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.6rem; padding: 0.4rem 0; margin: 0; font-family: var(--mono); font-size: 0.87rem; }
+  .derivation li:not(:last-child) { border-bottom: 1px dashed var(--line); }
+  .derivation li::before { content: counter(step); color: var(--ink-faint); }
+  .derivation .expr { color: var(--ink-soft); }
+  .derivation .result { color: var(--accent-strong); font-weight: 600; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+    .approach-grid { grid-template-columns: 1fr; }
+    .bf-sign .lbl, .bf-dc .lbl, .bf-mc .lbl { display: none; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 7 — Design a Unique ID Generator</h1>
+    <p class="dek"><code>auto_increment</code> only works on one database. Across many machines, generating IDs that are unique, numeric, 64-bit, and time-ordered — without constant coordination — takes real design.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>The problem</a></li>
+        <li><a href="#s2"><span class="num">02</span>Requirements</a></li>
+        <li><a href="#s3"><span class="num">03</span>Four approaches</a></li>
+        <li><a href="#s4"><span class="num">04</span>Snowflake deep dive</a></li>
+        <li><a href="#s5"><span class="num">05</span>The math</a></li>
+        <li><a href="#s6"><span class="num">06</span>Comparison</a></li>
+        <li><a href="#s7"><span class="num">07</span>Wrap-up</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Why <code>auto_increment</code> doesn't work here</h2>
+        <p>A single database's <code>auto_increment</code> is trivial — one server, one counter. It breaks the moment there are multiple database servers (forced by Chapter 1's sharding or Chapter 6's partitioning): two independent servers each counting <code>1,2,3...</code> locally will collide the instant their output merges. The real problem: generate IDs unique <em>across</em> machines, without those machines coordinating on every single ID.</p>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Requirements</h2>
+        <ul>
+          <li>IDs must be <strong>unique</strong>.</li>
+          <li>IDs are <strong>numeric only</strong>.</li>
+          <li>IDs fit in <strong>64 bits</strong>.</li>
+          <li>IDs are <strong>ordered by time</strong> — not necessarily +1, just: later always means numerically larger.</li>
+          <li>Support <strong>10,000+ IDs/second</strong>.</li>
+        </ul>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Four candidate approaches</h2>
+        <div class="approach-grid">
+          <div class="approach-card">
+            <span class="name">Multi-master replication</span>
+            <p>Native <code>auto_increment</code>, but step by <strong>k</strong> (number of DB servers) instead of 1, so servers interleave without colliding.</p>
+            <ul class="pc con"><li>Breaks time-ordering across servers</li><li>Hard to scale across data centers</li><li>Adding/removing a server reshuffles the whole scheme</li></ul>
+          </div>
+          <div class="approach-card">
+            <span class="name">UUID</span>
+            <p>128-bit ID, generated independently per machine, zero coordination. Collision odds are negligible.</p>
+            <ul class="pc pro"><li>Trivially simple, scales effortlessly</li></ul>
+            <ul class="pc con"><li>128 bits (need 64)</li><li>Not time-ordered</li><li>Can be non-numeric</li></ul>
+          </div>
+          <div class="approach-card">
+            <span class="name">Ticket server</span>
+            <p>Centralize <code>auto_increment</code> on one dedicated DB; everyone else asks it for the next ID (Flickr's approach).</p>
+            <ul class="pc pro"><li>Numeric, simple, fine at small/medium scale</li></ul>
+            <ul class="pc con"><li>Single point of failure</li><li>More ticket servers = right back to multi-master's coordination problem</li></ul>
+          </div>
+          <div class="approach-card winner">
+            <span class="name">Twitter Snowflake <span class="tag">chosen</span></span>
+            <p>Divide the 64-bit ID into sections — timestamp, datacenter ID, machine ID, sequence — each solving one piece of uniqueness/ordering independently.</p>
+            <ul class="pc pro"><li>Numeric, 64-bit, time-ordered</li><li>No SPOF, no cross-machine coordination needed</li></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Twitter Snowflake — deep dive</h2>
+        <p><strong>Divide and conquer</strong>: split the ID into sections, each independently responsible for one piece of the puzzle.</p>
+        <div class="bitfield-wrap">
+          <div class="bitfield">
+            <div class="seg bf-sign"></div>
+            <div class="seg bf-ts">41-bit timestamp</div>
+            <div class="seg bf-dc"></div>
+            <div class="seg bf-mc"></div>
+            <div class="seg bf-seq">12-bit sequence</div>
+          </div>
+        </div>
+        <div class="bitfield-legend">
+          <span><i class="bf-swatch" style="background:var(--ink-faint)"></i>Sign — 1 bit, always 0</span>
+          <span><i class="bf-swatch" style="background:var(--accent)"></i>Timestamp — 41 bits, ms since custom epoch</span>
+          <span><i class="bf-swatch" style="background:var(--mid)"></i>Datacenter ID — 5 bits (32 DCs)</span>
+          <span><i class="bf-swatch" style="background:var(--plum)"></i>Machine ID — 5 bits (32 machines/DC)</span>
+          <span><i class="bf-swatch" style="background:var(--warn)"></i>Sequence — 12 bits (4096/ms/machine)</span>
+        </div>
+        <p>Because timestamp sits in the highest-order bits after the sign bit, a later timestamp <strong>always</strong> produces a numerically larger ID — time-ordering, for free.</p>
+        <div class="callout">
+          <span class="label">Uniqueness without coordination</span>
+          <p>Every machine has a fixed, unique <code>(datacenter_id, machine_id)</code> pair assigned at startup. Two machines can never collide — even generating in the same millisecond — because that pair differs. Within one machine, the sequence number disambiguates same-millisecond IDs. Datacenter/machine ID are fixed config; only timestamp and sequence are generated live.</p>
+        </div>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> The math</h2>
+        <div class="derivation">
+          <h4>Timestamp lifespan (41 bits)</h4>
+          <ol>
+            <li><span class="expr">Max value = 2⁴¹ − 1</span><span class="result">= 2,199,023,255,551 ms</span></li>
+            <li><span class="expr">÷ 1000 (ms → s)</span><span class="result">≈ 2.199 billion seconds</span></li>
+            <li><span class="expr">÷ 3600 ÷ 24 ÷ 365 (s → years)</span><span class="result">≈ 69.7 years</span></li>
+          </ol>
+        </div>
+        <p class="lede">This is why Snowflake uses a <strong>custom epoch</strong> (Nov 2010) instead of the standard Unix epoch (1970) — every year already elapsed before your chosen epoch is runway thrown away. An epoch near actual launch buys the full ~69 years.</p>
+        <div class="derivation">
+          <h4>Throughput per machine (12-bit sequence)</h4>
+          <ol>
+            <li><span class="expr">4,096 IDs/ms × 1,000 ms/s</span><span class="result">= 4,096,000 IDs/sec per machine</span></li>
+            <li><span class="expr">vs. system requirement of 10,000 IDs/sec</span><span class="result">≈ 400× headroom</span></li>
+          </ol>
+        </div>
+        <p class="lede">Machines can be added freely with zero request-time coordination — uniqueness is structural (datacenter/machine ID), unlike Ticket Server or Multi-master Replication.</p>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Comparison summary</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Approach</th><th class="center">Numeric</th><th class="center">64-bit</th><th class="center">Time-ordered</th><th class="center">No SPOF</th><th class="center">No coordination</th></tr></thead>
+            <tbody>
+              <tr><td>Multi-master replication</td><td class="center">✓</td><td class="center">✓</td><td class="center">✗</td><td class="center">✓</td><td class="center">✗</td></tr>
+              <tr><td>UUID</td><td class="center">✗</td><td class="center">✗</td><td class="center">✗</td><td class="center">✓</td><td class="center">✓</td></tr>
+              <tr><td>Ticket server</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td class="center">✗</td><td class="center">✗</td></tr>
+              <tr><td><strong>Snowflake</strong></td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Wrap-up talking points</h2>
+        <ul>
+          <li><strong>Clock synchronization</strong> — the whole scheme assumes each machine's clock always moves forward. A backward jump (NTP correction, VM drift) could break ordering or risk a collision. NTP is the standard real-world fix.</li>
+          <li><strong>Section length tuning</strong> — 41/5/5/12 isn't fixed law. Low-concurrency, long-lived applications might shrink sequence bits and grow timestamp bits for longer runway before overflow.</li>
+          <li><strong>High availability</strong> — every write needs an ID, making this mission-critical. Snowflake's payoff: no machine coordinates with any other at request time, so one machine's generator failing never takes any other's offline — the property Ticket Server's SPOF couldn't offer.</li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> Universally unique identifier — <a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">en.wikipedia.org</a></li>
+          <li><span class="idx">02</span> Ticket Servers: Distributed Unique Primary Keys on the Cheap (Flickr) — <a href="https://code.flickr.net/2010/02/08/ticket-servers-distributed-unique-primary-keys-on-the-cheap/">code.flickr.net</a></li>
+          <li><span class="idx">03</span> Announcing Snowflake — <a href="https://blog.twitter.com/engineering/en_us/a/2010/announcing-snowflake.html">blog.twitter.com</a></li>
+          <li><span class="idx">04</span> Network Time Protocol — <a href="https://en.wikipedia.org/wiki/Network_Time_Protocol">en.wikipedia.org</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-07-unique-id-generator.md — jot doubts and follow-ups there.</p>
+</div>

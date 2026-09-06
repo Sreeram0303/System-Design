@@ -1,0 +1,598 @@
+<title>Design a Key-Value Store</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; }
+
+  .page { max-width: 1220px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 68ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 60ch; }
+
+  .layout { display: grid; grid-template-columns: 226px minmax(0, 74ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.78rem; border-right: 1px solid var(--line); padding-right: 1.25rem; max-height: calc(100vh - 4rem); overflow-y: auto; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.7rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.48rem; }
+  .toc a { display: flex; gap: 0.55rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+  .toc .sub { border-top: 1px solid var(--line); margin-top: 0.6rem; padding-top: 0.6rem; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+  h4 { font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); margin: 0 0 0.7rem; }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.89rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child, .callout ol:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; background: transparent; border: none; padding: 0; margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  /* engineer/architect takeaway list */
+  .takeaways { list-style: none; margin: 0 0 1.2rem; padding: 0; counter-reset: tk; display: flex; flex-direction: column; gap: 0.6rem; }
+  .takeaways li { counter-increment: tk; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 6px; padding: 0.7rem 0.9rem 0.7rem 2.6rem; position: relative; font-size: 0.92rem; }
+  .takeaways li::before { content: counter(tk); position: absolute; left: 0.85rem; top: 0.7rem; font-family: var(--mono); font-weight: 600; color: var(--accent); }
+
+  /* ring (reused pattern from Ch5) */
+  .ring-figure { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 0.9rem 0.9rem 0.7rem; box-shadow: var(--shadow); margin: 0 0 1.2rem; max-width: 460px; margin-left: auto; margin-right: auto; }
+  .ring-figure svg { width: 100%; height: auto; display: block; }
+  .ring-legend { display: flex; flex-wrap: wrap; gap: 0.8rem 1.3rem; font-family: var(--mono); font-size: 0.72rem; color: var(--ink-soft); justify-content: center; margin: 0 0 1.2rem; }
+  .ring-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .rlg-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* CAP triangle */
+  .cap-figure { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; box-shadow: var(--shadow); margin: 0 0 1.2rem; max-width: 380px; margin-left: auto; margin-right: auto; }
+  .cap-figure svg { width: 100%; height: auto; display: block; }
+
+  /* quorum overlap diagram */
+  .quorum-diagram { margin: 0 0 1.2rem; }
+  .q-servers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-bottom: 0.6rem; }
+  .q-server { text-align: center; padding: 0.9rem 0.5rem; border: 2px solid var(--line); border-radius: 8px; font-family: var(--mono); font-weight: 600; background: var(--paper-raised); }
+  .q-server.overlap { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+  .q-bars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
+  .q-bar { height: 10px; border-radius: 5px; }
+  .q-bar.w { grid-column: 1 / 3; background: var(--warn); opacity: 0.55; }
+  .q-bar.r { grid-column: 2 / 4; background: var(--accent); opacity: 0.55; margin-top: 4px; }
+  .q-bar.spacer { visibility: hidden; }
+  .q-labels { display: flex; gap: 1.5rem; font-family: var(--mono); font-size: 0.76rem; margin-top: 0.7rem; color: var(--ink-soft); }
+  .q-labels span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .q-swatch { width: 14px; height: 8px; border-radius: 4px; display: inline-block; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 900px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; max-height: none; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+    .toc .sub { border-top: none; margin-top: 0; padding-top: 0; border-left: 1px solid var(--line); padding-left: 0.7rem; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 6 — Design a Key-Value Store</h1>
+    <p class="dek">A distributed hash table, scoped to just <code>get</code>/<code>put</code> — and nearly every distributed-systems concept in this book (CAP, consistent hashing, quorum, versioning, gossip) shows up here in one place, because a real KV store needs all of them at once.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>KV store &amp; single server</a></li>
+        <li><a href="#s2"><span class="num">02</span>CAP theorem</a></li>
+        <li><a href="#s3"><span class="num">03</span>Data partitioning</a></li>
+        <li><a href="#s4"><span class="num">04</span>Data replication</a></li>
+        <li><a href="#s5"><span class="num">05</span>Quorum consensus</a></li>
+        <li><a href="#s6"><span class="num">06</span>Consistency models</a></li>
+        <li><a href="#s7"><span class="num">07</span>Vector clocks</a></li>
+        <li><a href="#s8"><span class="num">08</span>Handling failures</a></li>
+        <li><a href="#s9"><span class="num">09</span>Architecture &amp; paths</a></li>
+        <li class="sub"><a href="#summary">Summary</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> What a key-value store is</h2>
+        <p>A non-relational database: each unique <strong>key</strong> maps to an opaque <strong>value</strong> (string, list, object). The design is scoped to exactly two operations — <code>put(key, value)</code>, <code>get(key)</code> — no joins, no range queries, no secondary indexes. That narrow scope is what makes consistent hashing such a clean fit later: pure key→node routing is the entire access pattern.</p>
+        <div class="callout">
+          <span class="label">Design goals</span>
+          <p>KV pairs &lt; 10 KB · store big data · high availability · high scalability · automatic scaling · tunable consistency · low latency.</p>
+        </div>
+        <p><strong>Single server</strong>: a hash table in memory — fast, but memory-bound. Compression and hot/cold splitting buy some headroom, but a single machine hits a hard ceiling on raw <em>dataset size</em> (a different trigger than the QPS-based scaling limits from earlier chapters) — which is what forces a distributed design.</p>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> CAP theorem</h2>
+        <ul>
+          <li><strong>Consistency</strong> — every client sees the same data at the same time, regardless of node.</li>
+          <li><strong>Availability</strong> — every request gets a response, even if some nodes are down.</li>
+          <li><strong>Partition tolerance</strong> — the system keeps working despite a communication break between nodes.</li>
+        </ul>
+        <p>A distributed system cannot fully guarantee all three at once.</p>
+        <div class="cap-figure">
+          <svg viewBox="0 0 300 260">
+            <polygon points="150,25 30,225 270,225" fill="none" stroke="var(--line)" stroke-width="2"/>
+            <circle cx="150" cy="25" r="6" fill="var(--accent-strong)"/>
+            <circle cx="30" cy="225" r="6" fill="var(--accent-strong)"/>
+            <circle cx="270" cy="225" r="6" fill="var(--accent-strong)"/>
+            <text x="150" y="14" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" font-size="13" fill="var(--ink)">Consistency</text>
+            <text x="30" y="248" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" font-size="13" fill="var(--ink)">Availability</text>
+            <text x="270" y="248" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" font-size="13" fill="var(--ink)">Partition Tol.</text>
+            <text x="65" y="115" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--warn)" transform="rotate(-58 65 115)">CA — doesn't exist</text>
+            <text x="235" y="115" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent)" transform="rotate(58 235 115)">CP</text>
+            <text x="150" y="215" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent)">AP</text>
+          </svg>
+        </div>
+        <p><strong>The practical reframing</strong>: network partitions aren't optional — they will happen. So the real, practical question is: <strong>when a partition occurs, do you block to stay consistent, or keep serving and risk staleness?</strong> A CA system — sacrificing partition tolerance — cannot exist for a genuinely distributed system; it only works as long as nothing ever goes wrong.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    P{Partition occurs} -->|favor Consistency| CP["CP: block writes<br/>system unavailable during partition"]
+    P -->|favor Availability| AP["AP: keep serving<br/>may return/accept stale data"]
+    CP -.example.-> Bank[Bank balance systems]
+    AP -.example.-> Dynamo["Dynamo, Cassandra<br/>(this chapter's model)"]
+          </pre>
+          <figcaption>Fig 6-2/6-3 — CP vs. AP, replicas n1/n2/n3</figcaption>
+        </figure>
+        <p class="lede">The thread for the rest of the chapter: Dynamo and Cassandra choose <strong>AP</strong>. Every remaining topic either implements that choice, or cleans up the mess it creates.</p>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Data partitioning</h2>
+        <p>Same ring mechanism as Chapter 5. One addition here: <strong>heterogeneity</strong> — the number of virtual nodes a server gets is proportional to its capacity, so a beefier server owns proportionally more of the ring and takes proportionally more load.</p>
+        <div class="callout">
+          <span class="label">Reminder</span>
+          <p>A virtual node isn't a separate running server — just an extra label/position on the ring resolving back to the same physical machine, purely to improve statistical fairness. Adding a physical server is never blocked by existing virtual nodes.</p>
+        </div>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Data replication</h2>
+        <p>Partitioning alone gives one owner per key — a single point of failure. Replication stores each key on <strong>N</strong> servers: walk clockwise from the key's position, pick the first <strong>N unique physical servers</strong> (deduped, since virtual nodes can make consecutive ring positions resolve to the same machine).</p>
+        <div class="ring-figure">
+          <svg class="ring" viewBox="0 0 320 320" data-ring="replication"></svg>
+        </div>
+        <figcaption style="margin-top:-0.8rem;">Fig 6-4/6-5 — key0's clockwise walk selects replicas s1, s2, s3 (N=3)</figcaption>
+        <div class="ring-legend">
+          <span><i class="rlg-dot" style="background:var(--accent-strong)"></i>replica server</span>
+          <span><i class="rlg-dot" style="background:var(--ink-faint)"></i>other server</span>
+          <span><i class="rlg-dot" style="background:var(--paper);border:2px solid var(--warn)"></i>key0</span>
+        </div>
+        <p><strong>Cross-data-center placement</strong>: failures are often correlated (a power/network outage takes out a whole DC at once) — replicas are spread across physically distinct data centers, trading latency for real fault isolation.</p>
+        <p class="lede">Replication is <strong>asynchronous</strong> — a write doesn't need all N replicas to confirm before being "done." That raises the next question: how many of the N actually need to agree, and when?</p>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Consistency — quorum consensus</h2>
+        <ul>
+          <li><strong>N</strong> — number of replicas.</li>
+          <li><strong>W</strong> — write quorum: a write succeeds once W replicas acknowledge it.</li>
+          <li><strong>R</strong> — read quorum: a read succeeds once R replicas respond.</li>
+        </ul>
+        <div class="callout callout-warn">
+          <span class="label">Misconception</span>
+          <p><code>W=1</code> does not mean data is written to one server — the write still goes toward all N replicas. It just means the <strong>coordinator</strong> only waits for the first ack before returning success.</p>
+        </div>
+        <p><strong>The formula: <code>W + R &gt; N</code> guarantees strong consistency</strong> — a pigeonhole argument. If a write only needs W acks, the fresh copy could sit on any W-sized subset of N. If a read needs R responses, it queries some R-sized subset. When <code>W+R&gt;N</code>, those subsets are mathematically guaranteed to overlap by at least one replica.</p>
+        <div class="quorum-diagram">
+          <div class="q-servers">
+            <div class="q-server">s0</div>
+            <div class="q-server overlap">s1</div>
+            <div class="q-server">s2</div>
+          </div>
+          <div class="q-bars">
+            <div class="q-bar w"></div>
+            <div class="q-bar spacer"></div>
+            <div class="q-bar r"></div>
+          </div>
+          <div class="q-labels">
+            <span><i class="q-swatch" style="background:var(--warn);opacity:0.7"></i>W=2 write acks (s0, s1)</span>
+            <span><i class="q-swatch" style="background:var(--accent);opacity:0.7"></i>R=2 read query (s1, s2)</span>
+          </div>
+        </div>
+        <p class="lede">N=3, W+R=4 &gt; 3 → s1 is the guaranteed overlap, holding the fresh write. This is why <strong>N=3, W=R=2</strong> is the commonly cited default.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Config</th><th>Optimized for</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td><code>R=1, W=N</code></td><td>Fast reads</td><td>Slow writes</td></tr>
+              <tr><td><code>W=1, R=N</code></td><td>Fast writes</td><td>Slow reads</td></tr>
+              <tr><td><code>W+R&gt;N</code> (N=3,W=R=2)</td><td>Strong consistency</td><td>Balanced, neither side cheap</td></tr>
+              <tr><td><code>W+R≤N</code></td><td>Lowest latency</td><td>No consistency guarantee</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>What this tells a system architect</h3>
+        <ol class="takeaways">
+          <li>Consistency becomes a per-workload <strong>dial</strong>, not a global binary property — the same machinery backs strong and loose paths, just via different N/W/R per key.</li>
+          <li>It separates two concerns: <strong>N</strong> = fault tolerance/durability; <strong>W, R</strong> (relative to N) = latency/staleness tradeoff — independently tunable.</li>
+          <li>It tells you <strong>where to pay the latency cost</strong>: read-heavy workloads want small R; write-heavy workloads want small W.</li>
+          <li>It's a <strong>provable</strong> guarantee (pigeonhole), not a hand-wave — defensible with math, not just asserted.</li>
+          <li>Bigger quorums expose you to <strong>tail latency</strong> — you wait for the slowest of R/W replicas, not the average. Part of why N=3,W=R=2 (the minimum satisfying the formula) beats maxing out "for safety."</li>
+        </ol>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Consistency models</h2>
+        <ul>
+          <li><strong>Strong</strong> — any read returns the most recent write. Never stale.</li>
+          <li><strong>Weak</strong> — a subsequent read may not reflect the most recent write.</li>
+          <li><strong>Eventual</strong> — a specific case of weak: if writes stop, given enough time, all replicas converge.</li>
+        </ul>
+        <p>Strong consistency is achieved by blocking a replica from new reads/writes until every replica agrees — literally <code>W=N, R=N</code> pushed to the extreme; the CP choice, made concrete. <strong>Dynamo and Cassandra default to eventual consistency instead</strong>, and so does this chapter.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Quorum setting</th><th>Consistency model produced</th></tr></thead>
+            <tbody>
+              <tr><td><code>W=N, R=N</code> (full blocking)</td><td>Strong, worst availability/latency</td></tr>
+              <tr><td><code>W+R&gt;N</code>, both &lt;N (N=3,W=R=2)</td><td>Strong, without needing every replica</td></tr>
+              <tr><td><code>W+R≤N</code></td><td>Weak/eventual, best availability/latency</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout-warn">
+          <span class="label">The crucial nuance</span>
+          <p>Eventual consistency does <strong>not</strong> mean "it fixes itself." It means <em>if writes stop</em>, replicas converge — it says nothing about concurrent writes, and the system does not automatically pick a winner among them. That's exactly what vector clocks exist for.</p>
+        </div>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Inconsistency resolution — vector clocks</h2>
+        <p><strong>Why not timestamps?</strong> Server clocks drift — a genuinely later write can carry an earlier timestamp, so naive "last write wins" can silently lose data. Vector clocks use a <strong>logical</strong> clock — tracking who processed what, not when.</p>
+        <p>A vector clock is a paper trail: <code>D([Sx,2],[Sy,1])</code> means "2 writes processed by Sx, 1 by Sy." Every write bumps <strong>only</strong> the handling server's own counter.</p>
+
+        <h4>Case 1 — one server, no branching</h4>
+        <pre class="code">D1 written by Sx        → D1 = [Sx:1]
+D2 (edit of D1), by Sx   → D2 = [Sx:2]</pre>
+        <p class="lede">2 ≥ 1 → clean descent. Only one lineage, nothing to branch from.</p>
+
+        <h4>Case 2 — a second server joins, still sequential</h4>
+        <pre class="code">D2 read, updated to D3, handled by Sy  → D3 = [Sx:2, Sy:1]</pre>
+        <p class="lede">A server touching the lineage for the first time adds itself at 1, keeping what it inherited. General rule: Y descends from X if every one of Y's counters ≥ X's (missing = 0).</p>
+
+        <h4>Case 3 — the actual fork</h4>
+        <p>Two different clients read the <strong>same</strong> version <code>D2=[Sx:2]</code> at nearly the same time, before either writes back:</p>
+        <pre class="code">Client A → D3, handled by Sy  → D3 = [Sx:2, Sy:1]
+Client B → D4, handled by Sz  → D4 = [Sx:2, Sz:1]</pre>
+        <p>Check both directions: D3 descend from D4? <code>Sz: 0≥1</code> fails. D4 descend from D3? <code>Sy: 0≥1</code> fails. <strong>Neither direction passes — that double failure is the definition of a conflict.</strong></p>
+
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    D1["D1 [Sx:1]"] --> D2["D2 [Sx:2]"]
+    D2 --> D3["D3 [Sx:2,Sy:1]<br/>handled by Sy"]
+    D2 --> D4["D4 [Sx:2,Sz:1]<br/>handled by Sz"]
+    D3 -.conflict.- D4
+    D3 --> D5["D5 [Sx:3,Sy:1,Sz:1]<br/>merged by client, written via Sx"]
+    D4 --> D5
+          </pre>
+          <figcaption>Fig 6-9 — vector clock fork and merge</figcaption>
+        </figure>
+
+        <h3>Resolving the fork — the merge, and the client's role</h3>
+        <ol class="plain">
+          <li><strong>The read returns all siblings</strong>, not a silently-picked winner — every conflicting version plus its vector clock.</li>
+          <li><strong>The client merges the actual values</strong> using domain-specific logic — the vector clock only proves a conflict exists, never what the correct merge is.</li>
+          <li><strong>The client writes back the merge, passing the vector clocks ("context") of everything it merged</strong> — this is how it tells the server which versions this write supersedes.</li>
+          <li><strong>The server builds the new clock</strong>: max of each server's counter across all merged parents, then increment its own on top.</li>
+          <li><strong>Resolved</strong>: the new version dominates every former sibling, so future reads see a clean descendant.</li>
+        </ol>
+        <div class="callout">
+          <span class="label">Worked example — shopping cart</span>
+          <pre class="code">D3 = {apple, banana}   clock [Sx:2, Sy:1]
+D4 = {apple, cherry}   clock [Sx:2, Sz:1]
+
+client reads both → merges via union → {apple, banana, cherry}
+writes back with context = [D3's clock, D4's clock]
+server (Sx): max(2,2)=2, max(1,0)=1, max(0,1)=1, +1 to itself
+→ D5 = {apple, banana, cherry}, clock [Sx:3, Sy:1, Sz:1]</pre>
+        </div>
+        <p class="lede"><strong>"Client" usually means the application layer</strong>, not necessarily a human — merges can be fully automatic, or for genuinely ambiguous data, surfaced to a person to choose.</p>
+        <div class="callout callout-warn">
+          <span class="label">Two real costs</span>
+          <ul>
+            <li>The client must implement conflict-resolution logic — the store can detect a conflict but has no domain knowledge to resolve it.</li>
+            <li>Vector clocks can grow unboundedly as more servers touch a long-lived key — fixed by capping length and dropping the oldest entries (not a real problem in practice per the Dynamo paper).</li>
+          </ul>
+        </div>
+        <h3>What this tells an engineer</h3>
+        <ol class="takeaways">
+          <li>Eventual consistency isn't free — this is where you see the bill: real conflict-resolution logic you must build and maintain.</li>
+          <li>Never trust wall-clock time to order events across machines — use logical/causal ordering instead. This generalizes well beyond this chapter.</li>
+          <li>The storage layer can detect a conflict; it can never resolve one for you — resolution is inherently domain-specific.</li>
+          <li>Model data to be naturally mergeable (sets, counters, append-only logs — the idea behind CRDTs) rather than single ambiguous mutable fields.</li>
+          <li>The general principle: push ambiguous decisions to the edges (client/app); keep the core storage system simple, fast, and available.</li>
+        </ol>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> Handling failures — an escalation ladder</h2>
+
+        <h3>Failure detection — gossip protocol</h3>
+        <p>A single node's claim that "X is down" needs independent corroboration. All-to-all multicasting works but doesn't scale (~n² messages). <strong>Gossip protocol</strong> instead:</p>
+        <ol class="plain">
+          <li>Each node keeps a membership list: <code>{member_id → heartbeat_counter}</code>.</li>
+          <li>Each node periodically bumps its own heartbeat.</li>
+          <li>Each node periodically gossips its list to a small set of <strong>random</strong> peers.</li>
+          <li>Recipients merge the info, then gossip onward — spreading virally through the cluster.</li>
+          <li>A heartbeat stale past a threshold → marked offline, and that news spreads the same way.</li>
+        </ol>
+
+        <h3>Temporary failures — sloppy quorum + hinted handoff</h3>
+        <p>Strictly requiring the literal N designated replicas would stall requests if one is down — undermining the AP choice. <strong>Sloppy quorum</strong>: take the first W/R <em>healthy</em> servers on the ring, skipping any marked down. <strong>Hinted handoff</strong>: a healthy stand-in remembers the data really belongs elsewhere, and hands it back once the original recovers.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    U[Client] -->|write/read| S3["s3 (stand-in for down s2)"]
+    S3 -.hinted handoff on recovery.-> S2["s2 (recovered)"]
+          </pre>
+          <figcaption>Fig 6-12 — sloppy quorum + hinted handoff</figcaption>
+        </figure>
+
+        <h3>Permanent failures — anti-entropy via Merkle trees</h3>
+        <p>If a node never comes back (or replicas silently drift without ever being flagged down), a periodic <strong>anti-entropy</strong> check is needed. Comparing every key directly is too expensive at scale; one big hash for the whole dataset is cheap but tells you nothing about <em>where</em> a mismatch is.</p>
+        <p><strong>Merkle tree</strong> — hierarchical hashing to localize the difference: divide the key space into buckets → hash each key → one hash per bucket → build upward to a single root hash.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    Root["Root — differ"] --> H12["H12 (buckets 1-2) — match, cleared"]
+    Root --> H34["H34 (buckets 3-4) — differ"]
+    H12 --> H1["H1 {1,2}"]
+    H12 --> H2["H2 {3,4}"]
+    H34 --> H3["H3 {5,6} — differ"]
+    H34 --> H4["H4 {7,8} — match, cleared"]
+    H3 --> K5["key 5 — match"]
+    H3 --> K6["key 6 — DIFFERS"]
+          </pre>
+          <figcaption>Fig 6-13–6-16 — Merkle tree comparison, key 6 diverges</figcaption>
+        </figure>
+        <p><strong>Comparison protocol</strong>: compare roots first — match means identical, done in one comparison. On mismatch, recurse into children, discarding any branch whose hash matches (cleared, never inspected further), until the differing bucket(s) are isolated.</p>
+        <p class="lede">Cost scales with the <em>difference</em> between replicas, not dataset size. Book's real config: ~1 million buckets per 1 billion keys (~1,000 keys/bucket) — localizing a divergence costs ~20 hash comparisons plus scanning one bucket, not a billion keys.</p>
+        <div class="callout">
+          <span class="label">Bucket size is a real tradeoff</span>
+          <p>One leaf per key = maximum precision but a huge tree to store. Bigger buckets = smaller tree, more scanning once localized. Once a differing key is found, if both replicas hold genuinely different values (not just one missing), the same vector-clock ancestor/conflict logic from topic 7 can decide how to reconcile it.</p>
+        </div>
+
+        <h3>Data center outage</h3>
+        <p>Not new mechanism — the payoff of replicating across physically distinct data centers (topic 4). A whole DC going dark still leaves other DCs serving live replicas.</p>
+        <p class="lede"><strong>The full ladder</strong>: gossip detects → sloppy quorum + hinted handoff routes around a <em>temporary</em> absence → Merkle-tree anti-entropy repairs <em>permanent</em>/silent drift → cross-DC replication survives a whole building going dark.</p>
+      </section>
+
+      <section id="s9">
+        <h2><span class="sec-num">09</span> Architecture, write path, read path</h2>
+        <ul>
+          <li>Clients only see <code>get</code>/<code>put</code>.</li>
+          <li>A <strong>coordinator</strong> proxies between client and storage nodes.</li>
+          <li>Nodes sit on the consistent-hashing ring; each key lives on N of them.</li>
+          <li><strong>Every node runs identical responsibilities</strong> — any node can coordinate, gossip, or hold replica data. No master, no distinguishing SPOF — a deliberate contrast to Chapter 1's master-slave replication.</li>
+        </ul>
+        <h3>Write path</h3>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    W[Write request] --> CL["1. Append to commit log<br/>(disk, sequential)"]
+    CL --> MC["2. Save to in-memory cache"]
+    MC -->|cache full / threshold| SS["3. Flush to SSTable<br/>(disk, sorted, immutable)"]
+          </pre>
+          <figcaption>Fig 6-19 — write path (LSM-tree pattern)</figcaption>
+        </figure>
+        <p class="lede">Commit log first, purely for durability — and it's a cheap <strong>sequential</strong> disk write (Chapter 2: sequential beats random access). Writes land in memory rather than a sorted on-disk structure directly, because updating that on every write means constant random disk seeks — exactly what Chapter 2 says to avoid. This pattern (commit log + memtable + SSTable) is a named design: the <strong>LSM-tree</strong>, used by Cassandra, RocksDB, LevelDB.</p>
+        <h3>Read path</h3>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    R[Read request] --> Cache{In memory cache?}
+    Cache -->|Yes| Return[Return to client]
+    Cache -->|No| BF["Check Bloom filter per SSTable"]
+    BF -->|"definitely not here"| Skip[Skip that SSTable]
+    BF -->|"might be here"| Check["Check that SSTable"]
+    Check --> Return
+          </pre>
+          <figcaption>Fig 6-20/6-21 — read path with bloom filter</figcaption>
+        </figure>
+        <p class="lede">A bloom filter is far smaller in memory than an exact per-SSTable key index. It can say "definitely not here" (skip) or "might be here" (check) — <strong>never a false negative, sometimes a false positive</strong>. That asymmetry is the safe direction to be wrong in: worst case, wasted work; never a silently-missed key that actually exists.</p>
+      </section>
+
+      <section id="summary">
+        <h2>Summary</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Goal / challenge</th><th>Technique</th></tr></thead>
+            <tbody>
+              <tr><td>Store data too big for one server</td><td>Data partitioning via consistent hashing</td></tr>
+              <tr><td>High availability &amp; reliability</td><td>Replication across N servers and data centers</td></tr>
+              <tr><td>Keeping replicas in sync</td><td>Quorum consensus (N, W, R)</td></tr>
+              <tr><td>Tunable consistency</td><td>Configuring W, R relative to N</td></tr>
+              <tr><td>Handling concurrent write conflicts</td><td>Versioning via vector clocks</td></tr>
+              <tr><td>Detecting node failures</td><td>Gossip protocol</td></tr>
+              <tr><td>Staying available during temporary failures</td><td>Sloppy quorum + hinted handoff</td></tr>
+              <tr><td>Repairing permanent failures / silent drift</td><td>Anti-entropy via Merkle trees</td></tr>
+              <tr><td>Surviving a data center outage</td><td>Cross-datacenter replication</td></tr>
+              <tr><td>Efficient single-node writes</td><td>Commit log → memory cache → SSTable (LSM-tree)</td></tr>
+              <tr><td>Efficient single-node reads</td><td>Memory cache → bloom filter → SSTable</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <span class="label">The full arc, end to end</span>
+          <p>CAP theorem forces the AP choice → consistent hashing partitions the data → replication gives redundancy → quorum consensus tunes latency/consistency per workload → consistency models describe the guarantee produced → vector clocks detect (never resolve) the conflicts AP allows → gossip / sloppy quorum+hinted handoff / Merkle trees escalate from momentary blips to permanent loss to whole-datacenter outages → the write/read path is how one node stores and retrieves data efficiently underneath all of it.</p>
+        </div>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> Amazon DynamoDB — <a href="https://aws.amazon.com/dynamodb/">aws.amazon.com</a></li>
+          <li><span class="idx">02</span> Memcached — <a href="https://memcached.org/">memcached.org</a></li>
+          <li><span class="idx">03</span> Redis — <a href="https://redis.io/">redis.io</a></li>
+          <li><span class="idx">04</span> Dynamo: Amazon's Highly Available Key-value Store — <a href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf">allthingsdistributed.com</a></li>
+          <li><span class="idx">05</span> Cassandra — <a href="https://cassandra.apache.org/">cassandra.apache.org</a></li>
+          <li><span class="idx">06</span> Bigtable: A Distributed Storage System for Structured Data — <a href="https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf">research.google.com</a></li>
+          <li><span class="idx">07</span> Merkle tree — <a href="https://en.wikipedia.org/wiki/Merkle_tree">en.wikipedia.org</a></li>
+          <li><span class="idx">08</span> Cassandra architecture — <a href="https://cassandra.apache.org/doc/latest/architecture/">cassandra.apache.org</a></li>
+          <li><span class="idx">09</span> SSTable — <a href="https://www.igvita.com/2012/02/06/sstable-and-log-structured-storage-leveldb/">igvita.com</a></li>
+          <li><span class="idx">10</span> Bloom filter — <a href="https://en.wikipedia.org/wiki/Bloom_filter">en.wikipedia.org</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-06-design-a-key-value-store.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var CX = 160, CY = 160, R = 118;
+
+  function polar(angleDeg, radius) {
+    var t = (angleDeg) * Math.PI / 180;
+    return [CX + radius * Math.sin(t), CY - radius * Math.cos(t)];
+  }
+
+  function arcPath(a1, a2, radius) {
+    var p1 = polar(a1, radius), p2 = polar(a2, radius);
+    var delta = (a2 - a1 + 360) % 360;
+    if (delta === 0) delta = 360;
+    var largeArc = delta > 180 ? 1 : 0;
+    return 'M ' + p1[0] + ' ' + p1[1] + ' A ' + radius + ' ' + radius + ' 0 ' + largeArc + ' 1 ' + p2[0] + ' ' + p2[1];
+  }
+
+  function el(tag, attrs) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function render(svg, config) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var line = cssVar('--line'), ink = cssVar('--ink'), inkSoft = cssVar('--ink-soft'),
+        inkFaint = cssVar('--ink-faint'), accentStrong = cssVar('--accent-strong'),
+        warn = cssVar('--warn'), paper = cssVar('--paper');
+
+    svg.appendChild(el('circle', { cx: CX, cy: CY, r: R, fill: 'none', stroke: line, 'stroke-width': 1.5 }));
+
+    if (config.highlightArc) {
+      svg.appendChild(el('path', {
+        d: arcPath(config.highlightArc.from, config.highlightArc.to, R),
+        fill: 'none', stroke: warn, 'stroke-width': 12, opacity: 0.22, 'stroke-linecap': 'round'
+      }));
+    }
+
+    function findServerAngle(id) {
+      for (var i = 0; i < config.servers.length; i++) if (config.servers[i].id === id) return config.servers[i].angle;
+      return 0;
+    }
+
+    (config.keys || []).forEach(function (k) {
+      svg.appendChild(el('path', {
+        d: arcPath(k.angle, findServerAngle(k.mapsTo), R),
+        fill: 'none', stroke: inkFaint, 'stroke-width': 1, 'stroke-dasharray': '3,4', opacity: 0.7
+      }));
+    });
+
+    (config.servers || []).forEach(function (s) {
+      var p = polar(s.angle, R);
+      var color = s.muted ? inkFaint : accentStrong;
+      svg.appendChild(el('circle', { cx: p[0], cy: p[1], r: s.muted ? 6 : 8, fill: color }));
+      var lp = polar(s.angle, R + 20);
+      var t = el('text', { x: lp[0], y: lp[1], 'text-anchor': 'middle', 'font-family': 'IBM Plex Mono, monospace', 'font-size': s.muted ? 9 : 10.5, 'font-weight': s.muted ? 400 : 600, fill: s.muted ? inkFaint : ink });
+      t.textContent = s.id;
+      svg.appendChild(t);
+    });
+
+    (config.keys || []).forEach(function (k) {
+      var p = polar(k.angle, R);
+      svg.appendChild(el('circle', { cx: p[0], cy: p[1], r: 5, fill: paper, stroke: warn, 'stroke-width': 2 }));
+      var lp = polar(k.angle, R - 22);
+      var t = el('text', { x: lp[0], y: lp[1], 'text-anchor': 'middle', 'font-family': 'IBM Plex Mono, monospace', 'font-size': 9.5, fill: inkSoft });
+      t.textContent = k.id;
+      svg.appendChild(t);
+    });
+  }
+
+  var configs = {
+    'replication': {
+      servers: [
+        { id: 's0', angle: 0, muted: true }, { id: 's1', angle: 45 }, { id: 's2', angle: 90 },
+        { id: 's3', angle: 135 }, { id: 's4', angle: 180, muted: true }, { id: 's5', angle: 225, muted: true },
+        { id: 's6', angle: 270, muted: true }, { id: 's7', angle: 315, muted: true }
+      ],
+      keys: [{ id: 'key0', angle: 30, mapsTo: 's1' }],
+      highlightArc: { from: 30, to: 135 }
+    }
+  };
+
+  document.querySelectorAll('svg.ring').forEach(function (svg) {
+    var name = svg.getAttribute('data-ring');
+    if (configs[name]) render(svg, configs[name]);
+  });
+})();
+</script>

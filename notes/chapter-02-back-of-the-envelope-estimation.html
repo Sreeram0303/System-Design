@@ -1,0 +1,402 @@
+<title>Back-of-the-Envelope Estimation</title>
+<style>
+  :root {
+    --paper: #F1F3EC;
+    --paper-raised: #E7EAE0;
+    --paper-sunken: #E9ECE3;
+    --ink: #1C2420;
+    --ink-soft: #4B564F;
+    --ink-faint: #7C877E;
+    --accent: #0E6E62;
+    --accent-strong: #0B554B;
+    --accent-soft: #DCEAE5;
+    --warn: #B5651D;
+    --warn-soft: #F3E3D3;
+    --mid: #6E7F8C;
+    --mid-soft: #E1E6EA;
+    --line: #D3D8CD;
+    --code-bg: #E7EAE1;
+    --shadow: 0 1px 2px rgba(28,36,32,0.06);
+
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814;
+      --paper-raised: #1C231B;
+      --paper-sunken: #191F17;
+      --ink: #E7EAE1;
+      --ink-soft: #A7B0A2;
+      --ink-faint: #6E796E;
+      --accent: #4FBBAA;
+      --accent-strong: #7FD0C2;
+      --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F;
+      --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF;
+      --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226;
+      --code-bg: #1B211A;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814;
+    --paper-raised: #1C231B;
+    --paper-sunken: #191F17;
+    --ink: #E7EAE1;
+    --ink-soft: #A7B0A2;
+    --ink-faint: #6E796E;
+    --accent: #4FBBAA;
+    --accent-strong: #7FD0C2;
+    --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F;
+    --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF;
+    --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226;
+    --code-bg: #1B211A;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    color: var(--accent-strong);
+  }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.85rem;
+    text-wrap: balance;
+  }
+
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+
+  blockquote {
+    margin: 0 0 1.2rem;
+    padding: 0.9rem 1.15rem;
+    border-left: 3px solid var(--ink-faint);
+    background: var(--paper-raised);
+    border-radius: 0 4px 4px 0;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  blockquote cite { display: block; margin-top: 0.5rem; font-style: normal; font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 216px minmax(0, 68ch);
+    justify-content: center;
+    gap: 3.25rem;
+    align-items: start;
+  }
+
+  .toc {
+    position: sticky;
+    top: 2rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    border-right: 1px solid var(--line);
+    padding-right: 1.25rem;
+  }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+  .toc .sub { border-top: 1px solid var(--line); margin-top: 0.7rem; padding-top: 0.7rem; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+
+  h2 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 1.28rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+  td.num, th.num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  /* latency ladder */
+  .ladder {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.2rem 1.3rem 1rem;
+    margin: 0 0 1.2rem;
+    box-shadow: var(--shadow);
+  }
+  .ladder-row {
+    display: grid;
+    grid-template-columns: 15ch 1fr 9ch;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.32rem 0;
+  }
+  .ladder-label { font-size: 0.85rem; color: var(--ink-soft); }
+  .ladder-track { position: relative; height: 9px; background: var(--paper-sunken); border-radius: 5px; overflow: hidden; }
+  .ladder-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; min-width: 6px; }
+  .ladder-fill.fast { background: var(--accent); }
+  .ladder-fill.mid { background: var(--mid); }
+  .ladder-fill.slow { background: var(--warn); }
+  .ladder-value { font-family: var(--mono); font-size: 0.82rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .ladder-legend { display: flex; gap: 1.4rem; margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); }
+  .ladder-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .swatch.fast { background: var(--accent); }
+  .swatch.mid { background: var(--mid); }
+  .swatch.slow { background: var(--warn); }
+
+  /* derivation */
+  .derivation { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 0 0 1.2rem; box-shadow: var(--shadow); }
+  .derivation h4 { font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); margin: 0 0 0.9rem; }
+  .derivation ol { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .derivation li { counter-increment: step; display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.6rem; padding: 0.4rem 0; margin: 0; font-family: var(--mono); font-size: 0.87rem; }
+  .derivation li:not(:last-child) { border-bottom: 1px dashed var(--line); }
+  .derivation li::before { content: counter(step); color: var(--ink-faint); }
+  .derivation .expr { color: var(--ink-soft); }
+  .derivation .result { color: var(--accent-strong); font-weight: 600; }
+
+  .checklist { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem 1.5rem; }
+  .checklist li { display: flex; gap: 0.6rem; align-items: baseline; margin: 0; padding: 0.6rem 0.75rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 6px; }
+  .checklist .mark { font-family: var(--mono); color: var(--accent); flex: none; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.88rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc .sub { border-top: none; margin-top: 0; padding-top: 0; border-left: 1px solid var(--line); padding-left: 0.7rem; }
+    .toc a { white-space: nowrap; }
+    .checklist { grid-template-columns: 1fr; }
+    .ladder-row { grid-template-columns: 11ch 1fr 8ch; }
+    .ladder-label { font-size: 0.78rem; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 2 — Back-of-the-Envelope Estimation</h1>
+    <p class="dek">Three building blocks — powers of two, latency numbers, and availability numbers — turn a vague "how would this scale?" into a defensible number in under a minute.</p>
+    <blockquote>
+      "Back-of-the-envelope calculations are estimates you create using a combination of thought experiments and common performance numbers to get a good feel for which designs will meet your requirements."
+      <cite>Jeff Dean, Google Senior Fellow</cite>
+    </blockquote>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Power of two</a></li>
+        <li><a href="#s2"><span class="num">02</span>Latency numbers</a></li>
+        <li><a href="#s3"><span class="num">03</span>Availability numbers</a></li>
+        <li><a href="#s4"><span class="num">04</span>Worked example</a></li>
+        <li><a href="#s5"><span class="num">05</span>Interview tips</a></li>
+        <li class="sub"><a href="#refs">Reference materials</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Power of two</h2>
+        <p>Data volume in distributed systems always reduces to bytes, so powers of two are worth having memorized cold. A byte is 8 bits; one ASCII character is 1 byte.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Power</th><th>Approx value</th><th class="num">Bytes</th></tr></thead>
+            <tbody>
+              <tr><td>2⁷</td><td>128</td><td class="num">—</td></tr>
+              <tr><td>2⁸</td><td>256</td><td class="num">—</td></tr>
+              <tr><td>2¹⁰</td><td>1 thousand</td><td class="num">1 KB</td></tr>
+              <tr><td>2¹⁶</td><td>—</td><td class="num">64 KB</td></tr>
+              <tr><td>2²⁰</td><td>1 million</td><td class="num">1 MB</td></tr>
+              <tr><td>2³⁰</td><td>1 billion</td><td class="num">1 GB</td></tr>
+              <tr><td>2³²</td><td>—</td><td class="num">4 GB</td></tr>
+              <tr><td>2⁴⁰</td><td>1 trillion</td><td class="num">1 TB</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Latency numbers every programmer should know</h2>
+        <p>Jeff Dean's original 2010 numbers, later visualized for 2020-era hardware by a Google engineer. Exact values drift as hardware improves — the <strong>relative gaps</strong> are what matter.</p>
+        <div class="ladder">
+          <div class="ladder-row"><span class="ladder-label">L1 cache reference</span><span class="ladder-track"><span class="ladder-fill fast" style="width:0%"></span></span><span class="ladder-value">0.5 ns</span></div>
+          <div class="ladder-row"><span class="ladder-label">Branch mispredict</span><span class="ladder-track"><span class="ladder-fill fast" style="width:11.8%"></span></span><span class="ladder-value">5 ns</span></div>
+          <div class="ladder-row"><span class="ladder-label">L2 cache reference</span><span class="ladder-track"><span class="ladder-fill fast" style="width:13.5%"></span></span><span class="ladder-value">7 ns</span></div>
+          <div class="ladder-row"><span class="ladder-label">Mutex lock/unlock</span><span class="ladder-track"><span class="ladder-fill fast" style="width:27.1%"></span></span><span class="ladder-value">100 ns</span></div>
+          <div class="ladder-row"><span class="ladder-label">Main memory reference</span><span class="ladder-track"><span class="ladder-fill fast" style="width:27.1%"></span></span><span class="ladder-value">100 ns</span></div>
+          <div class="ladder-row"><span class="ladder-label">Compress 1 KB (Zippy)</span><span class="ladder-track"><span class="ladder-fill mid" style="width:50.7%"></span></span><span class="ladder-value">10 µs</span></div>
+          <div class="ladder-row"><span class="ladder-label">Send 1 KB @ 1 Gbps</span><span class="ladder-track"><span class="ladder-fill mid" style="width:50.7%"></span></span><span class="ladder-value">10 µs</span></div>
+          <div class="ladder-row"><span class="ladder-label">Read 4 KB random, SSD</span><span class="ladder-track"><span class="ladder-fill mid" style="width:64.6%"></span></span><span class="ladder-value">150 µs</span></div>
+          <div class="ladder-row"><span class="ladder-label">Read 1 MB seq, memory</span><span class="ladder-track"><span class="ladder-fill mid" style="width:67.2%"></span></span><span class="ladder-value">250 µs</span></div>
+          <div class="ladder-row"><span class="ladder-label">Round trip, same DC</span><span class="ladder-track"><span class="ladder-fill mid" style="width:70.8%"></span></span><span class="ladder-value">500 µs</span></div>
+          <div class="ladder-row"><span class="ladder-label">Read 1 MB seq, SSD</span><span class="ladder-track"><span class="ladder-fill mid" style="width:74.3%"></span></span><span class="ladder-value">1 ms</span></div>
+          <div class="ladder-row"><span class="ladder-label">Disk seek</span><span class="ladder-track"><span class="ladder-fill slow" style="width:86.1%"></span></span><span class="ladder-value">10 ms</span></div>
+          <div class="ladder-row"><span class="ladder-label">Read 1 MB seq, disk</span><span class="ladder-track"><span class="ladder-fill slow" style="width:89.7%"></span></span><span class="ladder-value">20 ms</span></div>
+          <div class="ladder-row"><span class="ladder-label">Packet CA→NL→CA</span><span class="ladder-track"><span class="ladder-fill slow" style="width:100%"></span></span><span class="ladder-value">150 ms</span></div>
+          <div class="ladder-legend">
+            <span><i class="swatch fast"></i>cache / memory</span>
+            <span><i class="swatch mid"></i>SSD / same-DC network</span>
+            <span><i class="swatch slow"></i>disk / cross-region</span>
+          </div>
+        </div>
+        <p class="lede">Bar length is on a log scale — the gap between the fastest and slowest row here is roughly <strong>300 million×</strong>, not visible at all on a linear scale.</p>
+        <div class="callout">
+          <span class="label">Takeaways</span>
+          <ul>
+            <li>Memory is fast, disk is slow.</li>
+            <li>Avoid disk seeks where possible.</li>
+            <li>Simple compression algorithms are fast — compress before sending over the network.</li>
+            <li>Data centers sit in different regions; moving data between them takes real, measurable time.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Availability numbers</h2>
+        <p><strong>High availability</strong> — a system stays continuously operational for a long stretch, measured as a percentage. Most real services sit between 99% and 100%.</p>
+        <p><strong>SLA</strong> (service level agreement) — the formal contract between provider and customer defining guaranteed uptime. AWS, GCP, and Azure all commit to 99.9%+ SLAs.</p>
+        <p>Uptime is discussed in <strong>"nines"</strong> — more nines, less downtime:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Availability</th><th class="num">Downtime / year</th><th class="num">Downtime / month</th><th class="num">Downtime / day</th></tr></thead>
+            <tbody>
+              <tr><td>99% <span class="lede">(two nines)</span></td><td class="num">~3.65 days</td><td class="num">~7.2 hrs</td><td class="num">~14.4 min</td></tr>
+              <tr><td>99.9% <span class="lede">(three nines)</span></td><td class="num">~8.76 hrs</td><td class="num">~43.8 min</td><td class="num">~1.44 min</td></tr>
+              <tr><td>99.99% <span class="lede">(four nines)</span></td><td class="num">~52.6 min</td><td class="num">~4.38 min</td><td class="num">~8.64 sec</td></tr>
+              <tr><td>99.999% <span class="lede">(five nines)</span></td><td class="num">~5.26 min</td><td class="num">~25.9 sec</td><td class="num">~864 ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Worked example — Twitter QPS &amp; storage</h2>
+        <p class="lede">Illustrative numbers only — not Twitter's real figures.</p>
+        <div class="callout">
+          <span class="label">Assumptions</span>
+          <ul>
+            <li>300 million monthly active users (MAU)</li>
+            <li>50% of users are active daily</li>
+            <li>Users post 2 tweets/day on average</li>
+            <li>10% of tweets contain media</li>
+            <li>Data retained for 5 years</li>
+          </ul>
+        </div>
+        <div class="derivation">
+          <h4>QPS estimate</h4>
+          <ol>
+            <li><span class="expr">DAU = 300M MAU × 50%</span><span class="result">= 150 million</span></li>
+            <li><span class="expr">Tweet QPS = 150M × 2 tweets ÷ 24h ÷ 3600s</span><span class="result">≈ 3,500 QPS</span></li>
+            <li><span class="expr">Peak QPS = 2 × average QPS</span><span class="result">≈ 7,000 QPS</span></li>
+          </ol>
+        </div>
+        <div class="derivation">
+          <h4>Media storage estimate</h4>
+          <ol>
+            <li><span class="expr">Avg tweet: tweet_id 64 B + text 140 B + media 1 MB</span><span class="result">≈ 1 MB / tweet w/ media</span></li>
+            <li><span class="expr">Daily media = 150M × 2 tweets × 10% × 1 MB</span><span class="result">= 30 TB / day</span></li>
+            <li><span class="expr">5-year media = 30 TB × 365 × 5</span><span class="result">≈ 55 PB</span></li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Interview tips</h2>
+        <ul class="checklist">
+          <li><span class="mark">✓</span> Round and approximate — <code>99987 / 9.1</code> → just do <code>100,000 / 10</code></li>
+          <li><span class="mark">✓</span> Write down your assumptions so they're referenceable</li>
+          <li><span class="mark">✓</span> Label your units — "5" is ambiguous, "5 MB" isn't</li>
+          <li><span class="mark">✓</span> Rehearse the common ones: QPS, peak QPS, storage, cache size, server count</li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> J. Dean — Google Pro Tip: Use Back-Of-The-Envelope-Calculations To Choose The Best Design — <a href="http://highscalability.com/blog/2011/1/26/google-pro-tip-use-back-of-the-envelope-calculations-to-choo.html">highscalability.com</a></li>
+          <li><span class="idx">02</span> System design primer — <a href="https://github.com/donnemartin/system-design-primer">github.com/donnemartin/system-design-primer</a></li>
+          <li><span class="idx">03</span> Latency Numbers Every Programmer Should Know — <a href="https://colin-scott.github.io/personal_website/research/interactive_latency.html">colin-scott.github.io</a></li>
+          <li><span class="idx">04</span> Amazon Compute Service Level Agreement — <a href="https://aws.amazon.com/compute/sla/">aws.amazon.com</a></li>
+          <li><span class="idx">05</span> Compute Engine Service Level Agreement (SLA) — <a href="https://cloud.google.com/compute/sla">cloud.google.com</a></li>
+          <li><span class="idx">06</span> SLA summary for Azure services — <a href="https://azure.microsoft.com/en-us/support/legal/sla/summary/">azure.microsoft.com</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-02-back-of-the-envelope-estimation.md — jot doubts and follow-ups there.</p>
+</div>
