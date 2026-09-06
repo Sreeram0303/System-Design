@@ -22,7 +22,7 @@ Each chapter gets a paired set of notes in [`notes/`](notes/):
 | 5 | Design Consistent Hashing | ✅ |
 | 6 | Design a Key-Value Store | ✅ |
 | 7 | Design a Unique ID Generator in Distributed Systems | ✅ |
-| 8 | Design a URL Shortener | ⏳ |
+| 8 | Design a URL Shortener | ✅ |
 | 9 | Design a Web Crawler | ⏳ |
 | 10 | Design a Notification System | ⏳ |
 | 11 | Design a News Feed System | ⏳ |
@@ -30,6 +30,7 @@ Each chapter gets a paired set of notes in [`notes/`](notes/):
 | 13 | Design a Search Autocomplete System | ⏳ |
 | 14 | Design YouTube | ⏳ |
 | 15 | Design Google Drive | ⏳ |
+| 16 | The Learning Continues | ⏳ |
 
 Updated as I move through the book — check back for more chapters.
 

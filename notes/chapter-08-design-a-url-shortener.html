@@ -1,0 +1,286 @@
+<title>Design a URL Shortener</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+
+  .layout { display: grid; grid-template-columns: 216px minmax(0, 70ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.8rem; border-right: 1px solid var(--line); padding-right: 1.25rem; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+  td.center, th.center { text-align: center; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child, .callout ol:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; background: transparent; border: none; padding: 0; margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  .derivation { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 0 0 1.2rem; box-shadow: var(--shadow); }
+  .derivation h4 { font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); margin: 0 0 0.9rem; }
+  .derivation ol { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .derivation li { counter-increment: step; display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.6rem; padding: 0.4rem 0; margin: 0; font-family: var(--mono); font-size: 0.87rem; }
+  .derivation li:not(:last-child) { border-bottom: 1px dashed var(--line); }
+  .derivation li::before { content: counter(step); color: var(--ink-faint); }
+  .derivation .expr { color: var(--ink-soft); }
+  .derivation .result { color: var(--accent-strong); font-weight: 600; }
+
+  .takeaways { list-style: none; margin: 0 0 1.2rem; padding: 0; counter-reset: tk; display: flex; flex-direction: column; gap: 0.6rem; }
+  .takeaways li { counter-increment: tk; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 6px; padding: 0.7rem 0.9rem 0.7rem 2.6rem; position: relative; font-size: 0.92rem; }
+  .takeaways li::before { content: counter(tk); position: absolute; left: 0.85rem; top: 0.7rem; font-family: var(--mono); font-weight: 600; color: var(--accent); }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 8 — Design a URL Shortener</h1>
+    <p class="dek">Less about new distributed-systems primitives, more about wiring together what earlier chapters already built — estimation, unique IDs, caching, rate limiting — into one concrete, practical system.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Requirements</a></li>
+        <li><a href="#s2"><span class="num">02</span>Back-of-envelope</a></li>
+        <li><a href="#s3"><span class="num">03</span>API &amp; redirect types</a></li>
+        <li><a href="#s4"><span class="num">04</span>Data model</a></li>
+        <li><a href="#s5"><span class="num">05</span>The hash function</a></li>
+        <li><a href="#s6"><span class="num">06</span>Shortening &amp; redirect flows</a></li>
+        <li><a href="#s7"><span class="num">07</span>Wrap-up talking points</a></li>
+        <li><a href="#s8"><span class="num">08</span>What estimation tells you</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Requirements</h2>
+        <ul>
+          <li>100 million URLs generated per day.</li>
+          <li>Shortened URL should be as short as possible.</li>
+          <li>Allowed characters: <code>0-9, a-z, A-Z</code> (62 characters).</li>
+          <li>Shortened URLs are never deleted or updated.</li>
+        </ul>
+        <p class="lede">Two core use cases: shorten a long URL, and redirect a short URL back to the original.</p>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Back-of-envelope estimation</h2>
+        <div class="derivation">
+          <h4>QPS and storage</h4>
+          <ol>
+            <li><span class="expr">Write QPS = 100,000,000 ÷ 86,400</span><span class="result">≈ 1,160</span></li>
+            <li><span class="expr">Read QPS = 1,160 × 10 (10:1 ratio)</span><span class="result">= 11,600</span></li>
+            <li><span class="expr">10-yr records = 100M × 365 × 10</span><span class="result">= 365 billion</span></li>
+            <li><span class="expr">Storage = 365 billion × 100 bytes</span><span class="result">≈ 36.5 TB</span></li>
+          </ol>
+        </div>
+        <div class="callout callout-warn">
+          <span class="label">Errata caught while studying this chapter</span>
+          <p>The book states this comes out to <strong>365 TB</strong>, but its own arithmetic (<code>365 billion × 100 bytes</code>) actually gives <strong>36.5 TB</strong>. The <code>365 billion</code> figure already includes the 10-year multiplier — multiplying by "10 years" again double-counts it, as if the service ran for 100 years. Worth independently re-deriving numbers rather than trusting a source at face value.</p>
+        </div>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> API design, and 301 vs. 302</h2>
+        <ul>
+          <li><code>POST api/v1/data/shorten</code> — body <code>{longUrl}</code> → returns the short URL.</li>
+          <li><code>GET api/v1/shortUrl</code> — returns the long URL for redirection.</li>
+        </ul>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>301 (permanent)</th><th>302 (temporary)</th></tr></thead>
+            <tbody>
+              <tr><td>Browser caching</td><td>Yes — later clicks skip your servers</td><td>No — every click hits your service</td></tr>
+              <tr><td>Server load</td><td>Lower</td><td>Higher</td></tr>
+              <tr><td>Analytics</td><td>Poor — only first click visible</td><td>Good — every click trackable</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede"><strong>The tradeoff in one line</strong>: 301 optimizes for infrastructure cost; 302 optimizes for data. A product decision, not just a technical footnote.</p>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Data model</h2>
+        <p>The naive design keeps <code>&lt;shortURL, longURL&gt;</code> in an in-memory hash table — useless for 36+ TB of real data. The actual design stores this mapping in a <strong>relational database</strong>: a simple table of <code>id, shortURL, longURL</code>.</p>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> The hash function</h2>
+        <p>Need the smallest <code>n</code> such that <code>62ⁿ ≥ 365 billion</code>: <code>62⁶</code> isn't enough, <code>62⁷ ≈ 3.5 trillion</code> is — so <strong>7 characters</strong>.</p>
+        <h3>Approach 1 — hash + collision resolution</h3>
+        <p>Hash the long URL (CRC32/MD5/SHA-1), take the first 7 characters. Even the shortest (CRC32) needs truncating, which risks collisions. Resolve by recursively appending a predefined string and re-hashing until free. <strong>Cost</strong>: a DB lookup on every write to check for collisions — mitigated the same way as Chapter 6's read path, with a <strong>bloom filter</strong>.</p>
+        <h3>Approach 2 — base 62 conversion (chosen)</h3>
+        <p>Convert a globally unique integer ID (Chapter 7's ID generator) directly to base 62. Uniqueness is inherited structurally — <strong>no collisions possible, no DB check needed.</strong></p>
+        <div class="derivation">
+          <h4>Worked example — 11157 to base 62</h4>
+          <ol>
+            <li><span class="expr">11157 = 2×62² + 55×62¹ + 59×62⁰</span><span class="result">= 7688+3410+59 ✓</span></li>
+            <li><span class="expr">digits [2, 55, 59]</span><span class="result">map via 0-9→0-9, 10-35→a-z, 36-61→A-Z</span></li>
+            <li><span class="expr">2→'2', 55→'A'+19='T', 59→'A'+23='X'</span><span class="result">→ "2TX"</span></li>
+          </ol>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Hash + collision resolution</th><th>Base 62 conversion</th></tr></thead>
+            <tbody>
+              <tr><td>Collisions possible?</td><td>Yes — needs detection/resolution</td><td>No — structural uniqueness</td></tr>
+              <tr><td>DB check per write?</td><td>Yes (bloom filter helps)</td><td>No</td></tr>
+              <tr><td>Extra dependency</td><td>None</td><td>Ch7's unique ID generator</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede"><strong>Full circle</strong>: Chapter 7's ID generator exists largely so this chapter can use it here — base 62 avoids collision handling entirely by offloading uniqueness onto an already-solved problem.</p>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Shortening &amp; redirect flows</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    L[longURL in] --> Check{Already in DB?}
+    Check -->|Yes| Return1[Return existing shortURL]
+    Check -->|No| ID["Get new unique ID (Ch7)"]
+    ID --> B62["Convert ID to shortURL via base62"]
+    B62 --> Save["Save id, shortURL, longURL"]
+          </pre>
+          <figcaption>Fig 8-7 — URL shortening flow</figcaption>
+        </figure>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    U[User clicks shortURL] --> LB[Load Balancer] --> Cache{In cache?}
+    Cache -->|Hit| Return[Return longURL]
+    Cache -->|Miss| DB{In database?}
+    DB -->|Yes| Return
+    DB -->|No| Invalid[Likely invalid shortURL]
+          </pre>
+          <figcaption>Fig 8-8 — URL redirecting flow</figcaption>
+        </figure>
+        <p class="lede">Since reads outnumber writes 10:1, caching <code>&lt;shortURL, longURL&gt;</code> is a direct payoff of Chapter 1's cache-tier reasoning.</p>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Wrap-up talking points</h2>
+        <ul>
+          <li><strong>Rate limiting</strong> (Ch4) — guards the shortening endpoint against abuse.</li>
+          <li><strong>Web server scaling</strong> (Ch1) — stateless web tier, scale by adding/removing servers.</li>
+          <li><strong>Database scaling</strong> (Ch1, 5, 6) — replication and sharding once one DB can't hold 36+ TB.</li>
+          <li><strong>Analytics</strong> — a legitimate business reason to prefer 302 over 301.</li>
+          <li><strong>Availability, consistency, reliability</strong> (Ch1) — general principles apply here too.</li>
+        </ul>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> What back-of-envelope estimation tells an engineer</h2>
+        <p class="lede">Prompted directly by catching the book's own 36.5 TB vs. 365 TB error above.</p>
+        <ol class="takeaways">
+          <li>It <strong>falsifies bad designs</strong> before you build them — the 36.5 TB number is what kills the "everything in a hash table" idea outright.</li>
+          <li>It tells you <strong>where to spend engineering effort</strong> — the 10:1 read:write skew is why the redirect flow gets a cache and the shortening flow doesn't.</li>
+          <li>It can <strong>directly derive a design parameter</strong> — "365 billion capacity" + "62 characters" mathematically produces "7-character codes."</li>
+          <li>It's the guard against <strong>over-engineering in both directions</strong> — small numbers justify skipping this machinery entirely; big numbers earn the right to use it.</li>
+          <li>It <strong>forces assumptions into the open</strong> — "100 bytes/URL," "10:1 ratio," "10 years" are assumptions, written down so they're checkable later.</li>
+          <li>It's a <strong>check on your own reasoning</strong> — the 36.5 vs. 365 TB catch only happened because the calculation was written out step by step.</li>
+        </ol>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> A RESTful Tutorial — <a href="https://www.restapitutorial.com/index.html">restapitutorial.com</a></li>
+          <li><span class="idx">02</span> Bloom filter — <a href="https://en.wikipedia.org/wiki/Bloom_filter">en.wikipedia.org</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-08-design-a-url-shortener.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>

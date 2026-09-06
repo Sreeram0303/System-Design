@@ -701,3 +701,11 @@ flowchart TD
 
   <p class="colophon">Companion to notes/chapter-01-scale-from-zero-to-millions.md — jot doubts and follow-ups there.</p>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>

@@ -470,3 +470,11 @@ flowchart LR
 
   <p class="colophon">Companion to notes/chapter-04-design-a-rate-limiter.md — jot doubts and follow-ups there.</p>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>
