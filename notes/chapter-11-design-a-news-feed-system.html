@@ -1,0 +1,310 @@
+<title>Design a News Feed System</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+
+  .layout { display: grid; grid-template-columns: 216px minmax(0, 70ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.8rem; border-right: 1px solid var(--line); padding-right: 1.25rem; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.89rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; background: transparent; border: none; padding: 0; margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  .pc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin: 0 0 1.2rem; }
+  .pc-grid .callout ul { padding-left: 1.1rem; }
+  .pc-grid .callout li { margin-bottom: 0.5rem; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+    .pc-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 11 — Design a News Feed System</h1>
+    <p class="dek">The exact example Chapter 3 used to teach the interview framework — and the fan-out push/pull tradeoff foreshadowed since then finally gets its full resolution here.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Requirements</a></li>
+        <li><a href="#s2"><span class="num">02</span>The two APIs</a></li>
+        <li><a href="#s3"><span class="num">03</span>Publishing flow</a></li>
+        <li><a href="#s4"><span class="num">04</span>Building flow</a></li>
+        <li><a href="#s5"><span class="num">05</span>Fanout deep dive</a></li>
+        <li><a href="#s6"><span class="num">06</span>Fanout service steps</a></li>
+        <li><a href="#s7"><span class="num">07</span>Retrieval &amp; hydration</a></li>
+        <li><a href="#s8"><span class="num">08</span>Cache architecture</a></li>
+        <li><a href="#s9"><span class="num">09</span>Wrap-up</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Requirements — the exact example from Chapter 3</h2>
+        <ul>
+          <li>Both mobile and web.</li>
+          <li>Core features: make a post, see friends' feed.</li>
+          <li><strong>Reverse-chronological</strong>, not ranked — no scoring/ML subsystem needed.</li>
+          <li><strong>5,000 max friends</strong> — bounded, not unlimited followers.</li>
+          <li><strong>10 million DAU.</strong></li>
+          <li>Feed contains images and video, not just text.</li>
+        </ul>
+        <p class="lede">The friend-count number isn't a "scale" question — it's a <strong>fan-out shape</strong> question. It determines whether pushing a post to every friend's feed at write time is cheap and bounded. A hard cap of 5,000 looks safe at a glance — topic 5 revisits whether it actually is.</p>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> The two APIs</h2>
+        <pre class="code">POST /v1/me/feed
+  content, auth_token
+
+GET /v1/me/feed
+  auth_token</pre>
+        <p class="lede">Deliberately minimal — no ranking parameters to expose, because there's no ranking algorithm behind a reverse-chronological feed.</p>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Feed publishing — the write path</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    U[User posts] --> LB[Load Balancer] --> WS[Web Servers]
+    WS --> PS[Post Service] --> DB[(DB + Cache)]
+    WS --> FS[Fanout Service]
+    WS --> NS[Notification Service]
+          </pre>
+          <figcaption>Fig 11-2 — feed publishing</figcaption>
+        </figure>
+        <p class="lede">Same write-path/read-path split seen in Chapters 6, 8, and 9 — publishing is the write path; building (next) is its read-path counterpart.</p>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> News feed building — the read path (high-level)</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    U[User requests feed] --> LB[Load Balancer] --> WS[Web Servers]
+    WS --> NFS[Newsfeed Service] --> Cache[(Newsfeed Cache)]
+          </pre>
+          <figcaption>Fig 11-3 — news feed building, high level</figcaption>
+        </figure>
+        <p class="lede">Deliberately simple at this level — the real complexity is pushed backward into fanout (done ahead of time) or downstream into hydration at retrieval.</p>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Fanout deep dive — the payoff of Chapter 3's fan-out question</h2>
+        <p><strong>Fanout</strong> = delivering a post to all of a user's friends.</p>
+        <div class="pc-grid">
+          <div class="callout">
+            <span class="label">Fanout on write (push)</span>
+            <p>Pre-compute the feed at write time — a post is pushed directly into every friend's cache immediately.</p>
+            <ul>
+              <li><strong>Pro:</strong> real-time delivery, fast reads</li>
+              <li><strong>Con:</strong> the "hotkey problem" for users with many friends</li>
+              <li><strong>Con:</strong> wasted work pre-computing for inactive users</li>
+            </ul>
+          </div>
+          <div class="callout callout-warn">
+            <span class="label">Fanout on read (pull)</span>
+            <p>Assemble the feed on demand — recent posts pulled from friends only when the home page loads.</p>
+            <ul>
+              <li><strong>Pro:</strong> no wasted work on inactive users</li>
+              <li><strong>Pro:</strong> no hotkey problem</li>
+              <li><strong>Con:</strong> reads become slow — assembled live every time</li>
+            </ul>
+          </div>
+        </div>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    P[New post published] --> Type{Author type}
+    Type -->|Normal user| Push["Push into every friend's<br/>newsfeed cache immediately"]
+    Type -->|Celebrity / high-follower| Skip["Not pushed to followers"]
+    Skip -.-> Pull["Follower's feed load pulls<br/>celebrity content on-demand"]
+    Push --> Feed["Follower's merged feed"]
+    Pull --> Feed
+          </pre>
+          <figcaption>Fig 11-5 — the hybrid design</figcaption>
+        </figure>
+        <p><strong>The answer</strong>: push for the majority of users (fast reads matter most for typical accounts); pull for celebrities/high-follower accounts. <strong>Consistent hashing (Ch5)</strong> distributes whatever fanout load still needs to happen more evenly across shards.</p>
+        <div class="callout">
+          <span class="label">Worth being precise</span>
+          <p>5,000 max friends is bounded, but the deep dive still flags a hotkey problem — "bounded" doesn't mean "small enough to ignore." Same lesson as Chapter 9's politeness problem in a different costume: an aggregate budget needs explicit protection from any single outlier, and a cap alone doesn't remove that need.</p>
+        </div>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> The fanout service, step by step</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    G[("Graph DB:<br/>fetch friend IDs")] --> F["Filter by settings<br/>(muted, hidden from)"]
+    F --> Q[["Message Queue"]]
+    Q --> W[Fanout Workers]
+    W --> NC[("Newsfeed Cache:<br/>&lt;post_id, user_id&gt;")]
+          </pre>
+          <figcaption>Fig 11-5 — fanout service pipeline</figcaption>
+        </figure>
+        <ol class="plain">
+          <li>Fetch friend IDs from a <strong>graph database</strong> — purpose-built for relationship data.</li>
+          <li>Filter by settings — muted friends or selectively-hidden posts drop out here, before fanning out.</li>
+          <li>Send the friends list + post ID to a <strong>message queue</strong> — never processed inline with the publish request (Ch1's message queue lesson).</li>
+          <li>Fanout workers pull from the queue and write into the newsfeed cache.</li>
+          <li><strong>Only IDs are stored</strong>, never full objects — a configurable per-user size limit keeps the cache small.</li>
+        </ol>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Retrieval &amp; hydration</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    R[Request feed] --> NFS[Newsfeed Service]
+    NFS --> IDs[("Newsfeed Cache:<br/>post IDs")]
+    IDs --> Hydrate["Fetch full objects from<br/>User Cache + Post Cache"]
+    Hydrate --> JSON["Fully hydrated feed (JSON)"]
+          </pre>
+          <figcaption>Fig 11-7 — retrieval and hydration</figcaption>
+        </figure>
+        <p class="lede"><strong>Media (images/video) is served from a CDN</strong> — the same reasoning as Chapter 1's CDN section.</p>
+        <div class="callout">
+          <span class="label">Hydration is a tradeoff, not a free lunch</span>
+          <p>Storing only IDs keeps the newsfeed cache small and cheap — but retrieval now needs an extra assembly step to make it renderable. The same shape as Chapter 6's bloom filter needing a follow-up check, or Chapter 8's base-62 code needing a DB lookup for the real long URL: cheap to store rarely comes free, the cost usually just moves to whoever reads it back.</p>
+        </div>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> Cache architecture — five layers, not one</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Layer</th><th>Stores</th><th>Access pattern</th></tr></thead>
+            <tbody>
+              <tr><td>News Feed</td><td><code>&lt;post_id, user_id&gt;</code> IDs</td><td>Very read-heavy, tiny entries, critical path</td></tr>
+              <tr><td>Content</td><td>Full post data</td><td>Read-skewed toward popular/recent — hot/cold split</td></tr>
+              <tr><td>Social Graph</td><td>Friend/follow relationships</td><td>Read-heavy, changes rarely</td></tr>
+              <tr><td>Action</td><td>Likes/replies on a post</td><td>Frequent writes and reads</td></tr>
+              <tr><td>Counters</td><td>Like/reply/follower counts</td><td>Extremely high write volume vs. entry size</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede">Same instinct as Chapter 1's separate tiers and Chapter 10's per-type queues — bundling genuinely different access patterns into one shared cache means none of them can be tuned or scaled independently.</p>
+      </section>
+
+      <section id="s9">
+        <h2><span class="sec-num">09</span> Wrap-up — scaling talking points</h2>
+        <ul>
+          <li><strong>Database scaling</strong> — vertical vs. horizontal, SQL vs. NoSQL, master-slave replication, read replicas, consistency models, sharding.</li>
+          <li><strong>Keep the web tier stateless.</strong></li>
+          <li><strong>Cache data as much as possible.</strong></li>
+          <li><strong>Support multiple data centers.</strong></li>
+          <li><strong>Decouple components with message queues.</strong></li>
+          <li><strong>Monitor key metrics</strong> — peak-hour QPS, feed-refresh latency.</li>
+        </ul>
+        <p class="lede">Every one of these is a direct callback to a chapter already covered — this chapter's contribution isn't new vocabulary, it's showing how all of it comes together to solve one concrete, familiar product.</p>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> How News Feed Works — <a href="https://www.facebook.com/help/327131014036297/">facebook.com</a></li>
+          <li><span class="idx">02</span> Friend of Friend recommendations with Neo4j and SQL Server — <a href="http://geekswithblogs.net/brendonpage/archive/2015/10/26/friend-of-friend-recommendations-with-neo4j.aspx">geekswithblogs.net</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-11-design-a-news-feed-system.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>

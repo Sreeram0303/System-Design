@@ -1,0 +1,285 @@
+<title>Design a Notification System</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 66ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 58ch; }
+
+  .layout { display: grid; grid-template-columns: 216px minmax(0, 70ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.8rem; border-right: 1px solid var(--line); padding-right: 1.25rem; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.72rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .toc a { display: flex; gap: 0.6rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; background: transparent; border: none; padding: 0; margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  .comp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.9rem; margin: 0 0 1.2rem; }
+  .comp-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 0.85rem 1rem; box-shadow: var(--shadow); }
+  .comp-card .name { font-family: var(--mono); font-weight: 600; font-size: 0.85rem; color: var(--accent-strong); display: block; margin-bottom: 0.35rem; }
+  .comp-card p { font-size: 0.82rem; color: var(--ink-soft); margin: 0; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 860px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 10 — Design a Notification System</h1>
+    <p class="dek">Every delivery path here routes through a third-party service you don't control — APNS, FCM, Twilio, Sendgrid — which makes this a different shape of design problem than most chapters before it.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Types &amp; requirements</a></li>
+        <li><a href="#s2"><span class="num">02</span>Contact info flow</a></li>
+        <li><a href="#s3"><span class="num">03</span>Initial design</a></li>
+        <li><a href="#s4"><span class="num">04</span>Improved design</a></li>
+        <li><a href="#s5"><span class="num">05</span>Reliability</a></li>
+        <li><a href="#s6"><span class="num">06</span>Additional components</a></li>
+        <li><a href="#s7"><span class="num">07</span>Wrap-up</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Notification types &amp; requirements</h2>
+        <p>Supports push/SMS/email; a <strong>soft real-time</strong> system (fast preferred, slight delay under heavy load acceptable); iOS, Android, desktop; triggered by client apps or scheduled server-side; users can opt out. <strong>Volume</strong>: 10M push, 1M SMS, 5M emails per day.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Type</th><th>Key components</th><th>Delivery service</th></tr></thead>
+            <tbody>
+              <tr><td>iOS push</td><td>Provider, device token, JSON payload</td><td>APNS</td></tr>
+              <tr><td>Android push</td><td>Same shape as iOS</td><td>FCM</td></tr>
+              <tr><td>SMS</td><td>—</td><td>Twilio, Nexmo</td></tr>
+              <tr><td>Email</td><td>—</td><td>Sendgrid, Mailchimp</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <span class="label">Worth noticing immediately</span>
+          <p>Every delivery path routes through a third-party service outside your control. A large chunk of the real reliability risk lives outside the system entirely — which is why <strong>extensibility</strong> (plugging/unplugging a provider without a redesign) matters here specifically, and why "a provider might be unavailable in some market" (FCM doesn't work in China; Jpush/PushY fill in) is a first-class concern.</p>
+        </div>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Contact info gathering flow</h2>
+        <p>On signup/install, API servers collect contact info. Email/phone live in the <strong>user table</strong>; device tokens live in a <strong>separate device table</strong> since a user can have multiple devices.</p>
+        <p class="lede">Consequence: "send a notification to a user" can mean fanning out to several device tokens at once, not just one.</p>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Initial design, and its three problems</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    S["Services 1..N"] --> N["Notification Server (single)"]
+    N --> TP["Third-party services"]
+    TP --> D["iOS / Android / SMS / Email"]
+          </pre>
+          <figcaption>Fig 10-9 — initial design</figcaption>
+        </figure>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Problem</th><th>Same pattern seen in</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Single point of failure</strong> — one notification server</td><td>Ch1's load balancer, Ch6's decentralized design</td></tr>
+              <tr><td><strong>Hard to scale</strong> — DB/cache/processing bundled in one server</td><td>Ch1's "separate tiers scale independently"</td></tr>
+              <tr><td><strong>Performance bottleneck</strong> — synchronous, slow third-party calls</td><td>Sets up the message-queue fix next</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Improved design — decoupling the pipeline</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    S["Services 1..N"] --> LB["Load Balancer"] --> NS["Notification Servers"]
+    NS <--> Cache[(Cache)]
+    NS <--> DB[(Database)]
+    NS --> Q1[["iOS PN queue"]]
+    NS --> Q2[["Android PN queue"]]
+    NS --> Q3[["SMS queue"]]
+    NS --> Q4[["Email queue"]]
+    Q1 --> W1[Workers] --> TP1[APNS]
+    Q2 --> W2[Workers] --> TP2[FCM]
+    Q3 --> W3[Workers] --> TP3[Twilio/Nexmo]
+    Q4 --> W4[Workers] --> TP4[Sendgrid/Mailchimp]
+          </pre>
+          <figcaption>Fig 10-10 — improved design, one queue per notification type</figcaption>
+        </figure>
+        <div class="callout">
+          <span class="label">Why separate queues per type</span>
+          <p>If FCM has an outage, only the Android queue backs up — SMS and email keep draining normally. A single shared queue would turn one third-party outage into a systemic one.</p>
+        </div>
+        <h3>The 6-step flow</h3>
+        <pre class="code">1. A service calls the notification server's API
+2. Notification server fetches user info, device token, settings from cache/DB
+3. The event is pushed to the correct queue (e.g., iOS push → iOS PN queue)
+4. Workers pull events from their queue
+5. Workers call the corresponding third-party service
+6. The third-party service delivers to the actual device</pre>
+        <p class="lede">The notification server's job ends at step 3 — it never waits on a third-party response. Slow, unpredictable third-party latency is isolated to the workers.</p>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Reliability</h2>
+        <h3>Preventing data loss</h3>
+        <p>Hard requirement: delayed or reordered is fine, <strong>lost is not</strong>. Fix: persist to a <strong>notification log</strong> database as part of the send, plus a retry mechanism — the same durability-first instinct as Chapter 6's write path.</p>
+        <h3>Exactly-once delivery doesn't exist</h3>
+        <figure class="diagram">
+          <pre class="mermaid">
+sequenceDiagram
+    participant W as Worker
+    participant TP as Third-party service
+    W->>TP: send notification
+    Note over W,TP: ack lost in transit (or never sent — indistinguishable to W)
+    W->>W: no ack received, assumes failure
+    W->>TP: retries send
+    Note over TP: recipient may now get it twice
+          </pre>
+          <figcaption>Fig — why "exactly once" isn't achievable</figcaption>
+        </figure>
+        <p>If an ack never arrives, the worker can't tell <em>"never delivered"</em> from <em>"delivered fine, ack lost."</em> The only safe move is to retry — which risks a duplicate if it was actually the second case.</p>
+        <div class="callout callout-warn">
+          <span class="label">The two honest baseline choices</span>
+          <p><strong>At-most-once</strong>: never retry on ambiguity — no duplicates, but risk losing messages. <strong>At-least-once</strong>: always retry — never lose, but risk duplicates. The requirement ("never lost") picks at-least-once, <strong>plus a dedup layer</strong> (check event ID: seen before → discard, new → send) — same shape as Chapter 9's "Content Seen?"/"URL Seen?".</p>
+        </div>
+        <div class="callout">
+          <span class="label">The pattern worth naming</span>
+          <p>Same move as Chapter 6's eventual consistency: don't prevent an imperfection outright (lost writes there, lost notifications here) — pick a simple, robust base guarantee that allows a specific, <em>bounded</em> imperfection (staleness there, duplicates here), then bolt on a thin reconciliation layer (vector clocks there, event-ID dedup here) to clean it up afterward.</p>
+        </div>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Additional components</h2>
+        <div class="comp-grid">
+          <div class="comp-card"><span class="name">Templates</span><p>Avoid rebuilding millions of similar notifications from scratch — consistent format, fewer errors, faster to produce.</p></div>
+          <div class="comp-card"><span class="name">Notification settings</span><p><code>{user_id, channel, opt_in}</code> — check the specific channel's opt-in before sending anything.</p></div>
+          <div class="comp-card"><span class="name">Rate limiting</span><p>Ch4's rate limiter, inverted — protects the <em>user</em> from too many notifications from your own services, not the server from clients.</p></div>
+          <div class="comp-card"><span class="name">Retry mechanism</span><p>Failed sends return to the queue; persistent failure alerts developers instead of retrying silently forever.</p></div>
+          <div class="comp-card"><span class="name">Security</span><p><code>appKey</code>/<code>appSecret</code> authenticate which clients can call the push APIs at all.</p></div>
+          <div class="comp-card"><span class="name">Queue monitoring</span><p>Growing queue depth = workers can't keep up = add more. The runtime counterpart to the design-time QPS estimate.</p></div>
+          <div class="comp-card"><span class="name">Events tracking</span><p>Open rate, click rate, engagement — tells you whether targeting/rate limiting is actually working.</p></div>
+        </div>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Wrap-up</h2>
+        <p>The final design layers authentication and rate-limiting onto the notification servers, adds a retry mechanism, uses templates for consistent creation, and adds monitoring/tracking for health and future tuning.</p>
+        <ul>
+          <li><strong>Reliability</strong> — a robust retry mechanism minimizes failure rate.</li>
+          <li><strong>Security</strong> — appKey/appSecret ensure only verified clients send notifications.</li>
+          <li><strong>Tracking &amp; monitoring</strong> — implemented at every stage to capture important stats.</li>
+          <li><strong>Respect user settings</strong> — check opt-in before sending, always.</li>
+          <li><strong>Rate limiting</strong> — frequency capping users will actually appreciate.</li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> Twilio SMS — <a href="https://www.twilio.com/sms">twilio.com</a></li>
+          <li><span class="idx">02</span> Nexmo SMS — <a href="https://www.nexmo.com/products/sms">nexmo.com</a></li>
+          <li><span class="idx">03</span> Sendgrid — <a href="https://sendgrid.com/">sendgrid.com</a></li>
+          <li><span class="idx">04</span> Mailchimp — <a href="https://mailchimp.com/">mailchimp.com</a></li>
+          <li><span class="idx">05</span> You Cannot Have Exactly-Once Delivery — <a href="https://bravenewgeek.com/you-cannot-have-exactly-once-delivery/">bravenewgeek.com</a></li>
+          <li><span class="idx">06</span> Security in Push Notifications — <a href="https://cloud.ibm.com/docs/services/mobilepush?topic=mobile-pushnotification-security-in-push-notifications">cloud.ibm.com</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-10-design-a-notification-system.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>

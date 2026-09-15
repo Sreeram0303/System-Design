@@ -7,3 +7,16 @@
 Thumbs.db
 desktop.ini
 .vscode/
+
+# All Instagram-reel work (Remotion projects, rendered videos, scripts,
+# blueprints, animation specs, exported panel images) lives under one
+# consolidated folder — kept local only, not pushed to GitHub. This repo is
+# notes only.
+instagram-reels/
+.claude/
+
+# Local build/tool caches — regenerable, huge (hundreds of MB), machine-
+# specific. .remotion/ holds a downloaded headless-Chrome binary; .cache/
+# holds webpack's build cache. Never belong in git.
+.remotion/
+.cache/

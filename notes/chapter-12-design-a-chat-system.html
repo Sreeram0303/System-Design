@@ -1,0 +1,339 @@
+<title>Design a Chat System</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; }
+
+  .page { max-width: 1200px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 68ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 60ch; }
+
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 72ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.78rem; border-right: 1px solid var(--line); padding-right: 1.25rem; max-height: calc(100vh - 4rem); overflow-y: auto; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.7rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.48rem; }
+  .toc a { display: flex; gap: 0.55rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.89rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; background: transparent; border: none; padding: 0; margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  .derivation { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 0 0 1.2rem; box-shadow: var(--shadow); }
+  .derivation h4 { margin: 0 0 0.9rem; font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); }
+  .derivation ol { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .derivation li { counter-increment: step; display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.6rem; padding: 0.4rem 0; margin: 0; font-family: var(--mono); font-size: 0.87rem; }
+  .derivation li:not(:last-child) { border-bottom: 1px dashed var(--line); }
+  .derivation li::before { content: counter(step); color: var(--ink-faint); }
+  .derivation .expr { color: var(--ink-soft); }
+  .derivation .result { color: var(--accent-strong); font-weight: 600; }
+
+  /* heartbeat timeline */
+  .hb-timeline { position: relative; height: 90px; margin: 0 0 0.8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-raised); overflow: hidden; padding-top: 1.4rem; }
+  .hb-track { position: absolute; left: 4%; right: 4%; top: 46px; height: 2px; background: var(--line); }
+  .hb-beat { position: absolute; top: 34px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); transform: translateX(-50%); border: 2px solid var(--paper-raised); }
+  .hb-beat.missed { background: var(--warn); }
+  .hb-label { position: absolute; top: 4px; font-family: var(--mono); font-size: 0.66rem; color: var(--ink-faint); transform: translateX(-50%); white-space: nowrap; }
+  .hb-window { position: absolute; top: 54px; height: 22px; background: rgba(181,101,29,0.12); border: 1px dashed var(--warn); border-radius: 4px; }
+  .hb-window-label { position: absolute; top: 58px; font-family: var(--mono); font-size: 0.62rem; color: var(--warn); text-align: center; width: 100%; }
+  .hb-legend { display: flex; flex-wrap: wrap; gap: 1rem 1.4rem; font-family: var(--mono); font-size: 0.74rem; color: var(--ink-soft); margin: 0 0 1.2rem; }
+  .hb-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 900px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; max-height: none; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 12 — Design a Chat System</h1>
+    <p class="dek">The first chapter in this book where "keep the web tier stateless" stops being the default answer — a real, open WebSocket connection has to live somewhere specific.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Requirements</a></li>
+        <li><a href="#s2"><span class="num">02</span>Protocol problem</a></li>
+        <li><a href="#s3"><span class="num">03</span>High-level design</a></li>
+        <li><a href="#s4"><span class="num">04</span>Scalability check</a></li>
+        <li><a href="#s5"><span class="num">05</span>Storage &amp; message IDs</a></li>
+        <li><a href="#s6"><span class="num">06</span>Service discovery</a></li>
+        <li><a href="#s7"><span class="num">07</span>Message flows</a></li>
+        <li><a href="#s8"><span class="num">08</span>Online presence</a></li>
+        <li><a href="#s9"><span class="num">09</span>Wrap-up</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Requirements</h2>
+        <p>Both 1-on-1 and group chat, mobile and web, <strong>50 million DAU</strong>, group chat capped at <strong>100 members</strong>, text-only, messages under 100,000 characters, no end-to-end encryption for now, chat history stored <strong>forever</strong>.</p>
+        <p class="lede">"Chat app" hides real product diversity — one-on-one (Messenger), office group chat (Slack), large-group voice (Discord). Scoping which one matters more here than in most chapters.</p>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> The core protocol problem</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Approach</th><th>Mechanism</th><th>Problem</th></tr></thead>
+            <tbody>
+              <tr><td>Polling</td><td>Client periodically asks "anything new?"</td><td>Wasteful — most polls return no</td></tr>
+              <tr><td>Long polling</td><td>Client holds connection open until new data or timeout</td><td>Sender/receiver may land on different servers; can't detect disconnects; inefficient for quiet users</td></tr>
+              <tr><td><strong>WebSocket</strong></td><td>HTTP upgrades to a persistent, bidirectional connection</td><td>Requires careful server-side connection management</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede">WebSocket actually inverts who can initiate — and that inversion is why the chat service, uniquely in this book, has to be genuinely stateful.</p>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> High-level design</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    C[Client] --> LB[Load Balancer]
+    LB --> API["API Servers (stateless)"]
+    LB --> SD["Service Discovery (stateless)"]
+    C <-->|persistent WebSocket| CS["Chat Servers (stateful)"]
+    CS --> PN["Notification Servers (Ch10)"]
+    CS --> KV[(Key-Value Store)]
+    PS["Presence Servers"] <-->|WebSocket| C
+          </pre>
+          <figcaption>Fig 12-7/12-8 — stateless services, stateful chat service, third-party integration</figcaption>
+        </figure>
+        <div class="callout">
+          <span class="label">Worth pausing on</span>
+          <p>Since Chapter 1, "keep the web tier stateless" has been close to a universal rule. The chat service is a genuine, structural exception — forced by WebSocket, not a lapse in discipline. A WebSocket connection is a real socket in one machine's memory; you can't load-balance individual messages the way you can plain HTTP requests.</p>
+        </div>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> The scalability reality check</h2>
+        <div class="derivation">
+          <h4>Single-server connection memory</h4>
+          <ol>
+            <li><span class="expr">1,000,000 concurrent users × 10 KB/connection</span><span class="result">≈ 10 GB</span></li>
+          </ol>
+        </div>
+        <div class="callout callout-warn">
+          <span class="label">The math checks out — the architecture still doesn't</span>
+          <p>A single server could genuinely hold this much connection memory. Yet single-server is still a red flag: SPOF, no scaling headroom, no maintenance without disconnecting everyone — none of which shows up in a capacity calculation. Back-of-envelope estimation tells you whether a <em>quantity</em> is feasible, not whether the <em>architecture</em> is sound.</p>
+        </div>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Storage &amp; message IDs</h2>
+        <p><strong>Chat history</strong> is a distinct workload: enormous volume (60 billion messages/day, Messenger+WhatsApp), strong recency bias but genuine random-access needs (search, jump-to-mention), and a read:write ratio <strong>≈ 1:1</strong> — notably different from the URL shortener's ~10:1 or the news feed's read-heavy skew.</p>
+        <p><strong>Key-value stores win</strong>: easy horizontal scaling, low latency, and relational DBs handle the "long tail" poorly as indexes grow. Real-world proof: Messenger uses HBase, Discord uses Cassandra — the same Cassandra from Chapter 6's reference systems.</p>
+        <div class="callout">
+          <span class="label">Message ID generation — three approaches</span>
+          <ul>
+            <li><code>auto_increment</code> — doesn't work on NoSQL (echoes Ch7's opening problem)</li>
+            <li>Global 64-bit sequence generator (Snowflake, Ch7) — fully solved, drop it in</li>
+            <li><strong>Local</strong> sequence generator — unique only within a group/channel</li>
+          </ul>
+          <p>Ordering only ever matters within one conversation. Before reaching for a fully-solved hard problem from an earlier chapter, check whether the requirement really needs <em>global</em> uniqueness, or just uniqueness within an already-bounded scope.</p>
+        </div>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Service discovery</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+sequenceDiagram
+    participant U as User A
+    participant LB as Load Balancer
+    participant API as API Servers
+    participant ZK as Service Discovery (Zookeeper)
+    participant CS as Chat Server 2
+
+    U->>LB: Login request
+    LB->>API: Route
+    API->>ZK: Authenticated - find best chat server
+    ZK-->>U: Server 2 info
+    U->>CS: Connect via WebSocket
+          </pre>
+          <figcaption>Fig 12-11 — service discovery flow</figcaption>
+        </figure>
+        <p class="lede">A regular load balancer decides fresh per request — a wrong pick costs little. Service discovery decides <strong>once per connection</strong>, sticking for hours — a bad pick isn't self-correcting. Zookeeper (centralized coordination) solves the same "which nodes are healthy" problem as Ch6's gossip protocol (decentralized) — chosen here because clients need one authoritative answer.</p>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Message flows</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    A[User A] --> CS1[Chat Server 1]
+    CS1 --> ID["Get message ID"]
+    ID --> Q[["Message sync queue"]]
+    Q --> KV[(Key-Value Store)]
+    Q --> Online{User B online?}
+    Online -->|Yes| CS2[Chat Server 2] --> B[User B]
+    Online -->|No| PN[Push Notification]
+          </pre>
+          <figcaption>Fig 12-12 — 1-on-1 chat flow</figcaption>
+        </figure>
+        <p class="lede">Persistence happens independently of live delivery — same durability-first instinct as Ch6's write path and Ch10's notification log.</p>
+        <h3>Multi-device sync</h3>
+        <p>Each device tracks its own <code>cur_max_message_id</code> — a high-water mark. New = recipient matches <em>and</em> message ID &gt; that mark. Works cheaply because message IDs are <strong>sortable by time</strong>, not just unique — sortability is what enables a single scalar bookmark instead of per-message tracking.</p>
+        <h3>Small group chat flow</h3>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    A[User A sends message] --> InboxB["User B's inbox (sync queue)"]
+    A --> InboxC["User C's inbox (sync queue)"]
+          </pre>
+          <figcaption>Fig 12-14 — copy into each member's inbox</figcaption>
+        </figure>
+        <div class="callout">
+          <span class="label">The parallel worth naming</span>
+          <p>Copying a message into every member's inbox on write is structurally identical to Chapter 11's fanout-on-write for news feeds — and has the exact same limitation: one write triggering N copies doesn't scale once N gets large. Explicitly why group size is capped at 100 here (WeChat caps at 500).</p>
+        </div>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> Online presence</h2>
+        <p><strong>Login/logout</strong> are simple status flips. <strong>Disconnection</strong> is the hard case — naive immediate-offline causes rapid flapping from ordinary network flicker.</p>
+        <div class="hb-timeline">
+          <div class="hb-track"></div>
+          <div class="hb-window" style="left:52%; width:44%;"></div>
+          <div class="hb-window-label" style="left:52%; width:44%;">offline after 30s silence</div>
+          <div class="hb-beat" style="left:8%;"></div>
+          <div class="hb-label" style="left:8%;">t=0s</div>
+          <div class="hb-beat" style="left:24%;"></div>
+          <div class="hb-label" style="left:24%;">t=5s</div>
+          <div class="hb-beat" style="left:40%;"></div>
+          <div class="hb-label" style="left:40%;">t=10s</div>
+          <div class="hb-beat missed" style="left:96%;"></div>
+          <div class="hb-label" style="left:88%;">t=40s: marked offline</div>
+        </div>
+        <p class="lede">Client heartbeats every 5s. Only after a full 30s of silence does the status actually flip — a <strong>debouncing pattern</strong>: don't react to one noisy signal, wait for it to persist. Same move as Ch6's gossip protocol requiring two independent sources before declaring a node down.</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    A[User A status change] --> ChAB[["Channel A-B"]] --> B[User B]
+    A --> ChAC[["Channel A-C"]] --> C[User C]
+    A --> ChAD[["Channel A-D"]] --> D[User D]
+          </pre>
+          <figcaption>Fig 12-19 — pub-sub, one channel per relationship pair</figcaption>
+        </figure>
+        <div class="callout callout-warn">
+          <span class="label">The scaling limit — third appearance of this pattern</span>
+          <p>Fine for small groups; a 100,000-member group's status change would generate 100,000 events. Fix: stop pushing for large groups — pull status only when a user enters the group or refreshes. <strong>Identical move to Chapter 11's fanout-on-read fix for celebrities.</strong> Whenever a write threatens to fan out to an unbounded number of consumers, the fix is never "push harder" — it's "stop pushing to the outliers, let them pull instead."</p>
+        </div>
+      </section>
+
+      <section id="s9">
+        <h2><span class="sec-num">09</span> Wrap-up talking points</h2>
+        <ul>
+          <li><strong>Media files</strong> — compression, cloud storage, thumbnails for photos/videos.</li>
+          <li><strong>End-to-end encryption</strong> — only sender and recipient can read messages.</li>
+          <li><strong>Client-side caching</strong> — reduces client/server data transfer.</li>
+          <li><strong>Load time</strong> — Slack's Flannel: a geographically distributed edge cache.</li>
+          <li><strong>Chat server failure</strong> — Zookeeper reassigns affected clients to a new server.</li>
+          <li><strong>Message resend mechanism</strong> — retry and queueing, the same at-least-once pattern used throughout this book.</li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> Erlang at Facebook — <a href="https://www.erlang-factory.com/upload/presentations/31/EugeneLetuchy-ErlangatFacebook.pdf">erlang-factory.com</a></li>
+          <li><span class="idx">02</span> Messenger and WhatsApp process 60 billion messages a day — <a href="https://www.theverge.com/2016/4/12/11415198/facebook-messenger-whatsapp-number-messages-vs-sms-f8-2016">theverge.com</a></li>
+          <li><span class="idx">03</span> Long tail — <a href="https://en.wikipedia.org/wiki/Long_tail">en.wikipedia.org</a></li>
+          <li><span class="idx">04</span> The Underlying Technology of Messages (HBase) — <a href="https://www.facebook.com/notes/facebook-engineering/the-underlying-technology-of-messages/454991608919/">facebook.com</a></li>
+          <li><span class="idx">05</span> How Discord Stores Billions of Messages (Cassandra) — <a href="https://blog.discordapp.com/how-discord-stores-billions-of-messages-7fa6ec7ee4c7">blog.discordapp.com</a></li>
+          <li><span class="idx">06</span> Apache ZooKeeper — <a href="https://zookeeper.apache.org/">zookeeper.apache.org</a></li>
+          <li><span class="idx">07</span> End-to-end encryption — <a href="https://faq.whatsapp.com/en/android/28030015/">faq.whatsapp.com</a></li>
+          <li><span class="idx">08</span> Flannel: An Application-Level Edge Cache to Make Slack Scale — <a href="https://slack.engineering/flannel-an-application-level-edge-cache-to-make-slack-scale-b8a6400e2f6b">slack.engineering</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-12-design-a-chat-system.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>

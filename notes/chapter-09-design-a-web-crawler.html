@@ -1,0 +1,367 @@
+<title>Design a Web Crawler</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; }
+
+  .page { max-width: 1220px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 68ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 60ch; }
+
+  .layout { display: grid; grid-template-columns: 222px minmax(0, 72ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.78rem; border-right: 1px solid var(--line); padding-right: 1.25rem; max-height: calc(100vh - 4rem); overflow-y: auto; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.7rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.48rem; }
+  .toc a { display: flex; gap: 0.55rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+  h4 { font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); margin: 0 0 0.7rem; }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.89rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child, .callout ol:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; background: transparent; border: none; padding: 0; margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  .derivation { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 0 0 1.2rem; box-shadow: var(--shadow); }
+  .derivation h4 { margin: 0 0 0.9rem; }
+  .derivation ol { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .derivation li { counter-increment: step; display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.6rem; padding: 0.4rem 0; margin: 0; font-family: var(--mono); font-size: 0.87rem; }
+  .derivation li:not(:last-child) { border-bottom: 1px dashed var(--line); }
+  .derivation li::before { content: counter(step); color: var(--ink-faint); }
+  .derivation .expr { color: var(--ink-soft); }
+  .derivation .result { color: var(--accent-strong); font-weight: 600; }
+
+  .comp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.9rem; margin: 0 0 1.2rem; }
+  .comp-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 0.85rem 1rem; box-shadow: var(--shadow); }
+  .comp-card .name { font-family: var(--mono); font-weight: 600; font-size: 0.85rem; color: var(--accent-strong); display: block; margin-bottom: 0.35rem; }
+  .comp-card p { font-size: 0.82rem; color: var(--ink-soft); margin: 0; }
+  .comp-stage { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); margin: 1.4rem 0 0.6rem; }
+
+  .takeaways { list-style: none; margin: 0 0 1.2rem; padding: 0; counter-reset: tk; display: flex; flex-direction: column; gap: 0.6rem; }
+  .takeaways li { counter-increment: tk; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 6px; padding: 0.7rem 0.9rem 0.7rem 2.6rem; position: relative; font-size: 0.92rem; }
+  .takeaways li::before { content: counter(tk); position: absolute; left: 0.85rem; top: 0.7rem; font-family: var(--mono); font-weight: 600; color: var(--accent); }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 900px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; max-height: none; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 9 — Design a Web Crawler</h1>
+    <p class="dek">"Download it, extract its links, repeat" is a three-line loop. Every component in this chapter exists because that loop breaks down brutally at a billion pages a month.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Requirements</a></li>
+        <li><a href="#s2"><span class="num">02</span>Back-of-envelope</a></li>
+        <li><a href="#s3"><span class="num">03</span>High-level design</a></li>
+        <li><a href="#s4"><span class="num">04</span>DFS vs BFS</a></li>
+        <li><a href="#s5"><span class="num">05</span>URL Frontier</a></li>
+        <li><a href="#s6"><span class="num">06</span>HTML Downloader</a></li>
+        <li><a href="#s7"><span class="num">07</span>Robustness &amp; extensibility</a></li>
+        <li><a href="#s8"><span class="num">08</span>Problematic content</a></li>
+        <li><a href="#s9"><span class="num">09</span>Wrap-up</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Requirements</h2>
+        <p>Scoped to search engine indexing: <strong>1 billion pages/month</strong>, HTML only, must catch new <em>and</em> edited pages, store crawled HTML for <strong>5 years</strong>, ignore duplicate content.</p>
+        <div class="callout">
+          <span class="label">Four qualities of a good crawler</span>
+          <ul>
+            <li><strong>Scalability</strong> — the web is huge, needs heavy parallelization</li>
+            <li><strong>Robustness</strong> — malformed HTML, dead servers, malicious links are all routine</li>
+            <li><strong>Politeness</strong> — never hammer one host with too many requests at once</li>
+            <li><strong>Extensibility</strong> — new content types shouldn't require a redesign</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Back-of-envelope estimation</h2>
+        <div class="derivation">
+          <h4>QPS and 5-year storage</h4>
+          <ol>
+            <li><span class="expr">QPS = 1B pages ÷ 30d ÷ 24h ÷ 3600s</span><span class="result">≈ 400 pages/sec</span></li>
+            <li><span class="expr">Peak QPS = 2 × 400</span><span class="result">= 800</span></li>
+            <li><span class="expr">Monthly storage = 1B × 500 KB avg page</span><span class="result">= 500 TB</span></li>
+            <li><span class="expr">5-yr storage = 500 TB × 12 × 5</span><span class="result">= 30 PB</span></li>
+          </ol>
+        </div>
+        <p class="lede">Verified — unlike Chapter 8's storage calculation, this one checks out with no double-counting. Worth confirming every time, regardless of which way it turns out.</p>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> High-level design</h2>
+        <p class="comp-stage">Getting a URL to download</p>
+        <div class="comp-grid">
+          <div class="comp-card"><span class="name">Seed URLs</span><p>Starting points — chosen by locality or topic.</p></div>
+          <div class="comp-card"><span class="name">URL Frontier</span><p>FIFO queue of URLs to download. See deep dive.</p></div>
+          <div class="comp-card"><span class="name">HTML Downloader</span><p>Fetches pages named by the Frontier.</p></div>
+          <div class="comp-card"><span class="name">DNS Resolver</span><p>Translates URL → IP address.</p></div>
+        </div>
+        <p class="comp-stage">Processing what comes back</p>
+        <div class="comp-grid">
+          <div class="comp-card"><span class="name">Content Parser</span><p>Validates/parses HTML — kept separate so slow parsing never blocks fetching.</p></div>
+          <div class="comp-card"><span class="name">Content Seen?</span><p>Dedup via hash comparison — ~29% of pages are duplicates.</p></div>
+          <div class="comp-card"><span class="name">Content Storage</span><p>Hybrid: bulk on disk, popular content cached in memory.</p></div>
+        </div>
+        <p class="comp-stage">Discovering the next URLs</p>
+        <div class="comp-grid">
+          <div class="comp-card"><span class="name">URL Extractor</span><p>Pulls links from HTML, resolves relative → absolute.</p></div>
+          <div class="comp-card"><span class="name">URL Filter</span><p>Excludes bad content types, broken links, blacklists.</p></div>
+          <div class="comp-card"><span class="name">URL Seen?</span><p>Bloom filter / hash table — avoids redundant work and infinite loops.</p></div>
+          <div class="comp-card"><span class="name">URL Storage</span><p>Stores already-visited URLs.</p></div>
+        </div>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    Seed[Seed URLs] --> Frontier[URL Frontier]
+    Frontier --> DL[HTML Downloader]
+    DL <--> DNS[DNS Resolver]
+    DL --> Parser[Content Parser]
+    Parser --> CS{Content Seen?}
+    CS -->|Yes, discard| X1[Discard]
+    CS -->|No| LE[Link Extractor]
+    LE --> UF[URL Filter]
+    UF --> US{URL Seen?}
+    US -->|Yes| X2[Do nothing]
+    US -->|No| Frontier
+          </pre>
+          <figcaption>Fig 9-2/9-4 — high-level architecture and the 11-step crawl loop</figcaption>
+        </figure>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> DFS vs. BFS</h2>
+        <p>The web is a directed graph — pages are nodes, hyperlinks are edges. <strong>DFS</strong> can go arbitrarily deep down one path, risking narrow coverage. <strong>BFS</strong> (FIFO queue) is standard, but naive BFS has two problems:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Problem</th><th>Why it happens</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Impoliteness</strong></td><td>Most links on a page point back to the same host — parallel BFS can burst-fire requests at one server, looking like a DoS attack</td></tr>
+              <tr><td><strong>No prioritization</strong></td><td>A random forum post mentioning "Apple" gets equal priority to apple.com's homepage</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede">Both point at the same missing piece: a smarter queue between "discovered" and "downloaded" — the <strong>URL Frontier</strong>.</p>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> URL Frontier deep dive</h2>
+        <h3>Politeness, worked through</h3>
+        <p>10,000 URLs from <code>wikipedia.org</code>, 200 from <code>nytimes.com</code>, 5 from a small blog:</p>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    Router[Queue Router] --> B1["b1: wikipedia.org (10,000 URLs)"]
+    Router --> B2["b2: nytimes.com (200 URLs)"]
+    Router --> B3["b3: smallblog.com (5 URLs)"]
+    B1 --> W1["Worker W1<br/>one at a time + delay"]
+    B2 --> W2["Worker W2"]
+    B3 --> W3["Worker W3"]
+          </pre>
+          <figcaption>Fig 9-6 — per-host queues decouple backlog size from download rate</figcaption>
+        </figure>
+        <p>No matter whether <code>b1</code> holds 10 or 10 million URLs, exactly <strong>one</strong> worker pulls from it — Wikipedia's crawl rate is capped by <code>W1</code>'s pace, completely decoupled from its backlog size.</p>
+        <div class="callout">
+          <span class="label">Connects to a broader lesson</span>
+          <p>An aggregate capacity number (our 400-800 QPS) is a <em>total system budget</em> — it says nothing about fair allocation among whoever draws from it. Politeness prevents one host from monopolizing that budget, the same way Chapter 4's rate limiter prevents one client from monopolizing an API's budget. Same problem shape, different key.</p>
+        </div>
+        <h3>Priority, worked through</h3>
+        <p><code>apple.com/</code> scores 9, Wikipedia's Apple article scores 7, a forum post scores 2 — routed into priority-banded front queues <code>f1</code> (8-10), <code>f2</code> (4-7), <code>f3</code> (0-3). The queue selector picks <strong>randomly, biased toward higher priority</strong> (~60/30/10%) — never a strict drain-<code>f1</code>-first rule, which would let <code>f3</code> starve forever.</p>
+        <h3>Front + back queues combined — tracing one URL</h3>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    URL["en.wikipedia.org/wiki/Apple_Inc."] --> P["Prioritizer: score 7"]
+    P --> F2["Front queue f2"]
+    F2 -->|biased selector picks f2| Router["Queue Router: host lookup"]
+    Router --> B1["Back queue b1 (all wikipedia.org URLs)"]
+    B1 --> W1["Worker W1 downloads in FIFO order"]
+          </pre>
+          <figcaption>Fig 9-8 — priority decides entry order; politeness still throttles per host</figcaption>
+        </figure>
+        <p class="lede">Priority determines <em>how soon</em> a URL enters the politeness system — it never lets a URL bypass its host's per-host throttle entirely.</p>
+        <h3>Freshness</h3>
+        <p><code>nytimes.com/</code> updates every few minutes → recrawled every 5-10 minutes. A static blog page → recrawled every few months. Two independent, reinforcing signals: <strong>update history</strong> and <strong>priority</strong>.</p>
+        <h3>Frontier storage, worked through</h3>
+        <div class="derivation">
+          <h4>Why a hybrid buffer is needed</h4>
+          <ol>
+            <li><span class="expr">500M URLs × ~150 bytes/entry</span><span class="result">≈ 75 GB metadata</span></li>
+            <li><span class="expr">Enqueue rate: 400-800 pages/sec × dozens of links each</span><span class="result">≈ thousands of URLs/sec</span></li>
+            <li><span class="expr">Individual disk writes at that rate (10ms/seek, Ch2)</span><span class="result">→ disk becomes the bottleneck</span></li>
+          </ol>
+        </div>
+        <p class="lede"><strong>Fix</strong>: in-memory buffer absorbs enqueue/dequeue traffic, periodically flushed to disk as one large sequential write.</p>
+        <h3>The recurring pattern across this book</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Where</th><th>Fast/hot layer</th><th>Durable/bulk layer</th></tr></thead>
+            <tbody>
+              <tr><td>Ch1 — single-server KV store</td><td>In-memory hot data</td><td>Disk</td></tr>
+              <tr><td>Ch6 — LSM-tree write path</td><td>Memtable + commit log</td><td>Immutable SSTable</td></tr>
+              <tr><td>Ch9 — Content Storage</td><td>Cache of popular pages</td><td>Disk (bulk HTML)</td></tr>
+              <tr><td>Ch9 — URL Frontier storage</td><td>Enqueue/dequeue buffer</td><td>Disk (bulk URLs)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lede">One underlying trick, four layers: buffer frequent small operations in memory, batch them into large sequential disk writes. Expect it again anywhere "too big for memory, too slow for disk alone" shows up.</p>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> HTML Downloader</h2>
+        <h3>Robots.txt</h3>
+        <p>Check and obey it before crawling any site. Real example (Amazon):</p>
+        <pre class="code">User-agent: Googlebot
+Disallow: /creatorhub/*
+Disallow: /rss/people/*/reviews</pre>
+        <p class="lede">Cache it rather than re-fetching on every request to that host.</p>
+        <h3>Performance optimizations</h3>
+        <ul>
+          <li><strong>Distributed crawl</strong> — partition the URL space across servers/threads (Ch1's horizontal scaling); previews <strong>consistent hashing</strong> (Ch5) for that partitioning.</li>
+          <li><strong>Cache the DNS Resolver</strong> — lookups are synchronous and slow (10-200ms, Ch2's latency table) and block the thread; cache domain→IP, refresh via cron.</li>
+          <li><strong>Locality</strong> — place crawl servers, caches, queues, and storage close to the hosts being crawled (Ch1's CDN/multi-DC logic, reapplied).</li>
+          <li><strong>Short timeout</strong> — cap wait time on unresponsive servers so one dead host doesn't quietly stall a worker thread.</li>
+        </ul>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Robustness &amp; extensibility</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Robustness</th><th>Extensibility</th></tr></thead>
+            <tbody>
+              <tr><td>Consistent hashing (Ch5) distributes downloader load</td><td rowspan="4">New content types (e.g. images) get added by <strong>plugging in new modules</strong> — a PNG Downloader, a Web Monitor for copyright tracking — never by redesigning the system</td></tr>
+              <tr><td>Save crawl state — a disrupted crawl restarts from saved state</td></tr>
+              <tr><td>Exception handling — errors are routine at this scale</td></tr>
+              <tr><td>Data validation guards against corrupt data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> Detecting problematic content</h2>
+        <ul>
+          <li><strong>Redundant content</strong> — ~30% of pages are duplicates; hashes/checksums detect it (same mechanism as "Content Seen?").</li>
+          <li><strong>Spider traps</strong> — infinite page structures, e.g. <code>/foo/bar/foo/bar/...</code>. Mitigated with a max URL length; no fully general automated fix exists — an unusually large discovered-page count on one site is the tell, often needing manual review.</li>
+          <li><strong>Data noise</strong> — ads, code snippets, spam URLs excluded where possible.</li>
+        </ul>
+      </section>
+
+      <section id="s9">
+        <h2><span class="sec-num">09</span> Wrap-up talking points</h2>
+        <ul>
+          <li><strong>Server-side rendering</strong> — JS/AJAX-generated links are invisible to raw HTML parsing; render the page first.</li>
+          <li><strong>Filter unwanted pages</strong> — an anti-spam component given finite crawl resources.</li>
+          <li><strong>Database replication and sharding</strong> (Ch1, 5, 6) — for data-layer availability/scalability.</li>
+          <li><strong>Horizontal scaling</strong> — hundreds/thousands of stateless servers for large-scale crawls.</li>
+          <li><strong>Availability, consistency, reliability</strong> (Ch1) — general principles apply here too.</li>
+          <li><strong>Analytics</strong> — collecting/analyzing crawl data to keep tuning the system.</li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> US Library of Congress — <a href="https://www.loc.gov/websites/">loc.gov</a></li>
+          <li><span class="idx">02</span> EU Web Archive — <a href="http://data.europa.eu/webarchive">data.europa.eu</a></li>
+          <li><span class="idx">03</span> Mercator: A scalable, extensible web crawler — Heydon &amp; Najork, 1999</li>
+          <li><span class="idx">04</span> Web Crawling survey — <a href="http://infolab.stanford.edu/~olston/publications/crawling_survey.pdf">infolab.stanford.edu</a></li>
+          <li><span class="idx">05</span> Space/time trade-offs in hash coding (Bloom filter) — Bloom, 1970</li>
+          <li><span class="idx">06</span> The PageRank citation ranking — Page, Brin, Motwani, Winograd, 1998</li>
+          <li><span class="idx">07</span> Google Dynamic Rendering — <a href="https://developers.google.com/search/docs/guides/dynamic-rendering">developers.google.com</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-09-design-a-web-crawler.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>

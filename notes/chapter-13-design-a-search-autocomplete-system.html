@@ -1,0 +1,304 @@
+<title>Search Autocomplete System</title>
+<style>
+  :root {
+    --paper: #F1F3EC; --paper-raised: #E7EAE0; --paper-sunken: #E9ECE3;
+    --ink: #1C2420; --ink-soft: #4B564F; --ink-faint: #7C877E;
+    --accent: #0E6E62; --accent-strong: #0B554B; --accent-soft: #DCEAE5;
+    --warn: #B5651D; --warn-soft: #F3E3D3;
+    --mid: #6E7F8C; --mid-soft: #E1E6EA;
+    --line: #D3D8CD; --code-bg: #E7EAE1; --shadow: 0 1px 2px rgba(28,36,32,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+      --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+      --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+      --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+      --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+      --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141814; --paper-raised: #1C231B; --paper-sunken: #191F17;
+    --ink: #E7EAE1; --ink-soft: #A7B0A2; --ink-faint: #6E796E;
+    --accent: #4FBBAA; --accent-strong: #7FD0C2; --accent-soft: rgba(79,187,170,0.14);
+    --warn: #E2924F; --warn-soft: rgba(226,146,79,0.14);
+    --mid: #9AB0BF; --mid-soft: rgba(154,176,191,0.14);
+    --line: #2B3226; --code-bg: #1B211A; --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.6; }
+  a { color: var(--accent-strong); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-strong); }
+  pre.code { font-family: var(--mono); font-size: 0.83rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem 1.1rem; overflow-x: auto; margin: 0 0 1.2rem; line-height: 1.55; }
+
+  .page { max-width: 1200px; margin: 0 auto; padding: 3.5rem 1.75rem 5rem; }
+  .masthead { max-width: 68ch; margin: 0 auto 3rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem; }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 0.85rem; text-wrap: balance; }
+  .dek { font-size: 1.08rem; color: var(--ink-soft); margin: 0; max-width: 60ch; }
+
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 72ch); justify-content: center; gap: 3.25rem; align-items: start; }
+  .toc { position: sticky; top: 2rem; font-family: var(--mono); font-size: 0.78rem; border-right: 1px solid var(--line); padding-right: 1.25rem; max-height: calc(100vh - 4rem); overflow-y: auto; }
+  .toc-label { text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-size: 0.7rem; margin: 0 0 0.9rem; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.48rem; }
+  .toc a { display: flex; gap: 0.55rem; color: var(--ink-soft); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { color: var(--accent-strong); }
+  .toc .num { color: var(--ink-faint); flex: none; font-variant-numeric: tabular-nums; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 3.1rem; scroll-margin-top: 1.5rem; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 1.24rem; display: flex; align-items: baseline; gap: 0.7rem; margin: 0 0 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--line); }
+  .sec-num { color: var(--accent); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  h3 { font-family: var(--mono); font-weight: 600; font-size: 0.94rem; letter-spacing: 0.01em; margin: 1.6rem 0 0.6rem; color: var(--ink); }
+
+  p { margin: 0 0 1rem; }
+  section > p:first-of-type { margin-top: 0; }
+  ul, ol.plain { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  .lede { color: var(--ink-soft); font-style: italic; }
+
+  .table-wrap { overflow-x: auto; margin-bottom: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 0.89rem; }
+  th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 500; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 0.95rem 1.15rem; margin: 0 0 1.2rem; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout-warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout .label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-strong); display: block; margin-bottom: 0.5rem; }
+  .callout-warn .label { color: var(--warn); }
+
+  figure.diagram { margin: 1.4rem 0 1.6rem; background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1rem 0.85rem; box-shadow: var(--shadow); }
+  figure.diagram pre.mermaid { display: flex; justify-content: center; overflow-x: auto; background: transparent; border: none; padding: 0; margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); text-align: center; margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line); }
+
+  .derivation { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 0 0 1.2rem; box-shadow: var(--shadow); }
+  .derivation h4 { margin: 0 0 0.9rem; font-family: var(--mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-strong); }
+  .derivation ol { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .derivation li { counter-increment: step; display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.6rem; padding: 0.4rem 0; margin: 0; font-family: var(--mono); font-size: 0.87rem; }
+  .derivation li:not(:last-child) { border-bottom: 1px dashed var(--line); }
+  .derivation li::before { content: counter(step); color: var(--ink-faint); }
+  .derivation .expr { color: var(--ink-soft); }
+  .derivation .result { color: var(--accent-strong); font-weight: 600; }
+
+  ol.refs { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.86rem; color: var(--ink-soft); }
+  ol.refs li { display: flex; gap: 0.6rem; }
+  ol.refs .idx { font-family: var(--mono); color: var(--ink-faint); flex: none; }
+  ol.refs a { word-break: break-all; }
+
+  .colophon { max-width: 68ch; margin: 3.5rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint); text-align: center; }
+
+  @media (max-width: 900px) {
+    .page { padding: 2.25rem 1.1rem 3.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .toc { position: static; border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 1rem; overflow-x: auto; max-height: none; }
+    .toc ol { flex-direction: row; flex-wrap: nowrap; }
+    .toc a { white-space: nowrap; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">System Design Interview · Alex Xu — Book Notes</p>
+    <h1>Chapter 13 — Design a Search Autocomplete System</h1>
+    <p class="dek">Also called "design top-k" — the one chapter in this book where the core optimization happens inside a data structure itself, not just in the surrounding infrastructure.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <p class="toc-label">On this page</p>
+      <ol>
+        <li><a href="#s1"><span class="num">01</span>Requirements &amp; estimation</a></li>
+        <li><a href="#s2"><span class="num">02</span>Naive high-level design</a></li>
+        <li><a href="#s3"><span class="num">03</span>Trie &amp; naive algorithm</a></li>
+        <li><a href="#s4"><span class="num">04</span>Two optimizations</a></li>
+        <li><a href="#s5"><span class="num">05</span>Data gathering pipeline</a></li>
+        <li><a href="#s6"><span class="num">06</span>Trie storage</a></li>
+        <li><a href="#s7"><span class="num">07</span>Query service</a></li>
+        <li><a href="#s8"><span class="num">08</span>Trie operations</a></li>
+        <li><a href="#s9"><span class="num">09</span>Scaling storage</a></li>
+        <li><a href="#s10"><span class="num">10</span>Wrap-up</a></li>
+        <li><a href="#refs">References</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="s1">
+        <h2><span class="sec-num">01</span> Requirements &amp; estimation</h2>
+        <p>Prefix matching only, top <strong>5</strong> suggestions ranked by popularity, no spell check, English/lowercase only for now, <strong>10 million DAU</strong>. Facebook's own autocomplete targets <strong>under 100ms</strong>, or it visibly stutters.</p>
+        <div class="derivation">
+          <h4>QPS</h4>
+          <ol>
+            <li><span class="expr">~20 requests per completed query (one per keystroke)</span><span class="result">e.g. "dinner" → 6 requests</span></li>
+            <li><span class="expr">10M users × 10 queries/day × 20 chars ÷ 86,400s</span><span class="result">≈ 24,000 QPS</span></li>
+            <li><span class="expr">Peak QPS = 24,000 × 2</span><span class="result">≈ 48,000</span></li>
+          </ol>
+        </div>
+        <p class="lede">The "20 requests per query" figure is self-inflicted by the UX itself — exactly why sub-100ms latency is non-negotiable, not just a nice target.</p>
+      </section>
+
+      <section id="s2">
+        <h2><span class="sec-num">02</span> Naive high-level design</h2>
+        <pre class="code">SELECT query FROM table
+WHERE query LIKE 'tw%'
+ORDER BY frequency DESC LIMIT 5</pre>
+        <p class="lede">A deliberate strawman — real-time per-keystroke writes don't scale, and a <code>LIKE</code> scan doesn't stay fast as the table grows. Two separate weaknesses, two separate fixes ahead.</p>
+      </section>
+
+      <section id="s3">
+        <h2><span class="sec-num">03</span> Trie data structure, and the naive algorithm</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    R((" ")) --> T[t]
+    T --> TR[tr]
+    TR --> TREE["tree: 10"]
+    TR --> TRUE["true: 35"]
+    TR --> TRY["try: 29"]
+          </pre>
+          <figcaption>Fig 13-7 — prefix "tr" and its subtree</figcaption>
+        </figure>
+        <pre class="code">1. Find the prefix node          — O(p)
+2. Traverse subtree for children — O(c)
+3. Sort children, take top k     — O(c log c)</pre>
+        <p><strong>Worked example</strong>: k=2, prefix "tr" → subtree yields <code>[tree:10],[true:35],[try:29]</code> → sorted top 2: <code>[true:35],[try:29]</code>.</p>
+        <p class="lede">The same prefix gets queried repeatedly while the underlying data barely changes between requests — re-sorting every time recomputes an answer that was already computed moments ago.</p>
+      </section>
+
+      <section id="s4">
+        <h2><span class="sec-num">04</span> Two optimizations — down to O(1)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Optimization</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td>Limit max prefix length (~50)</td><td>Find prefix: O(p) → O(1)</td></tr>
+              <tr><td>Cache top-k at every node</td><td>Return top-k: O(c log c) → O(1)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart TD
+    BE["be — cached top-5:<br/>best:35, bet:29, bee:20, be:15, beer:10"]
+          </pre>
+          <figcaption>Fig 13-8 — pre-computed answer stored directly on the node</figcaption>
+        </figure>
+        <div class="callout">
+          <span class="label">What this actually is</span>
+          <p>Pre-compute the expensive answer at build time so query time is a trivial lookup — the same move as Chapter 11's fanout-on-write and Chapter 6's write path, here showing up at the <strong>algorithmic/data-structure level</strong> rather than the infrastructure level.</p>
+        </div>
+      </section>
+
+      <section id="s5">
+        <h2><span class="sec-num">05</span> Data gathering pipeline</h2>
+        <figure class="diagram">
+          <pre class="mermaid">
+flowchart LR
+    L["Analytics Logs<br/>(append-only)"] --> AG[Aggregators]
+    AG --> AD[("Aggregated Data<br/>query, week, frequency")]
+    AD --> W[Workers]
+    W --> TDB[(Trie DB)]
+    W --> TC[(Trie Cache)]
+          </pre>
+          <figcaption>Fig 13-9 — batch pipeline, rebuilt on a schedule</figcaption>
+        </figure>
+        <div class="callout callout-warn">
+          <span class="label">Accumulation vs. replace — resolving an ambiguity</span>
+          <p>Aggregated Data accumulates one row per query <em>per week</em>, forever — not overwritten. Workers <strong>sum a query's full weekly history</strong> (40 + 2 this week = 42) to compute its current total, then bake that into the new trie. "Replace the old trie" means swapping the finished tree object atomically — not discarding accumulated counts. Open question the book leaves unresolved: sum over all time, or a rolling/decaying window? That tension is exactly why real-time trending (topic 10) is hard here.</p>
+        </div>
+        <p class="lede">Distinct from the buffer-then-flush pattern (Ch1/6/9): that pattern accumulates writes incrementally. This pipeline <strong>rebuilds the whole trie from scratch</strong> and replaces it wholesale — same instinct, different mechanism.</p>
+      </section>
+
+      <section id="s6">
+        <h2><span class="sec-num">06</span> Trie storage — two options</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Document store</th><th>Key-value store</th></tr></thead>
+            <tbody>
+              <tr><td>Shape</td><td>Whole trie serialized as one blob</td><td>prefix → key, node data → value</td></tr>
+              <tr><td>Fits</td><td>Loading the whole cache at once</td><td>Fetching exactly one prefix's data</td></tr>
+              <tr><td>Scaling</td><td>Hard to fetch partial data</td><td>Shardable via consistent hashing (Ch5)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="s7">
+        <h2><span class="sec-num">07</span> Query service</h2>
+        <pre class="code">1. Query → Load Balancer → API servers
+2. API servers fetch from Trie Cache
+3. Cache miss → replenish from Trie DB</pre>
+        <p class="lede">Same cache-aside, read-through pattern as Ch1, Ch6, and Ch8.</p>
+        <ul>
+          <li><strong>AJAX</strong> — every keystroke's request is async; with ~20 requests/query, this is what makes search-as-you-type physically viable in a browser.</li>
+          <li><strong>Browser caching</strong> — Google's real header: <code>Cache-Control: private, max-age=3600</code>. <code>private</code> = for one user only, never cached by a shared intermediary.</li>
+          <li><strong>Data sampling</strong> — log 1-in-N requests. Safe because ranking only needs <em>relative</em> popularity, not exact counts — a different tradeoff flavor than most of this book (accuracy for cost, not space or latency).</li>
+        </ul>
+      </section>
+
+      <section id="s8">
+        <h2><span class="sec-num">08</span> Trie operations</h2>
+        <div class="callout callout-warn">
+          <span class="label">Update — a cost topic 4 didn't mention</span>
+          <p>Updating one node forces updating <strong>every ancestor up to the root</strong>, since ancestors cache their descendants' top-k. The earlier "space for time" framing was incomplete — the real tradeoff is <strong>space and update cost, for read speed</strong>. In-place updates are only acceptable if the trie is small enough that the cascade stays cheap; otherwise, rebuild weekly and replace wholesale.</p>
+        </div>
+        <div class="callout">
+          <span class="label">Delete — a two-layer moderation design</span>
+          <p>A filter layer in front of the Trie Cache removes bad suggestions immediately at serving time; the underlying data is also removed from the DB asynchronously, so the next rebuild excludes it at the source too. Same combination-move as Ch10's at-least-once + async dedup: fast reactive fix now, slower structural correction later.</p>
+        </div>
+      </section>
+
+      <section id="s9">
+        <h2><span class="sec-num">09</span> Scaling the storage</h2>
+        <p>Naive: shard by first letter (<code>a-m</code>/<code>n-z</code>, up to 26 servers, then second-character sub-sharding beyond that).</p>
+        <div class="callout callout-warn">
+          <span class="label">Same symptom as Ch5, genuinely different cause</span>
+          <p>Consistent hashing's imbalance comes from <em>randomness</em> in hash placement — fixed with virtual nodes, because the data is assumed uniform. Here, far more English words start with 'c' than 'x' — the keyspace itself is <strong>permanently, predictably lumpy</strong>. Virtual nodes wouldn't help at all; the problem was never about server placement.</p>
+        </div>
+        <p><strong>Fix</strong>: a <strong>shard map manager</strong> — group letters into shards by measured historical load, not alphabet range (e.g., 's' alone ≈ 'u' through 'z' combined → two shards, unequal in size, balanced in load). An explicit lookup table, recomputed as patterns shift.</p>
+        <p class="lede">A distinct sharding tool worth keeping alongside consistent hashing: when a key's skew is <em>known</em> rather than random, a data-driven lookup table can outperform a purely algorithmic hash-based approach.</p>
+      </section>
+
+      <section id="s10">
+        <h2><span class="sec-num">10</span> Wrap-up — follow-up questions</h2>
+        <ul>
+          <li><strong>Multi-language</strong> — store Unicode in trie nodes instead of assuming ASCII.</li>
+          <li><strong>Per-country top queries</strong> — separate tries per region, stored in CDNs for speed.</li>
+          <li><strong>Real-time trending</strong> — the original design breaks: weekly rebuilds are too slow and too infrequent. Only sketched: shard down the working set, weight recent queries more, and recognize trending data often arrives as continuous streams needing different tools entirely (Hadoop, Spark Streaming, Storm, Kafka) — each its own domain, out of scope here.</li>
+        </ul>
+      </section>
+
+      <section id="refs">
+        <h2>Reference materials</h2>
+        <ol class="refs">
+          <li><span class="idx">01</span> The Life of a Typeahead Query — <a href="https://www.facebook.com/notes/facebook-engineering/the-life-of-a-typeahead-query/389105248919/">facebook.com</a></li>
+          <li><span class="idx">02</span> How We Built Prefixy — <a href="https://medium.com/@prefixyteam/how-we-built-prefixy-a-scalable-prefix-search-service-for-powering-autocomplete-c20f98e2eff1">medium.com</a></li>
+          <li><span class="idx">03</span> Prefix Hash Tree — <a href="https://people.eecs.berkeley.edu/~sylvia/papers/pht.pdf">people.eecs.berkeley.edu</a></li>
+          <li><span class="idx">04</span> MongoDB — <a href="https://en.wikipedia.org/wiki/MongoDB">en.wikipedia.org</a></li>
+          <li><span class="idx">05</span> Unicode FAQ — <a href="https://www.unicode.org/faq/basic_q.html">unicode.org</a></li>
+          <li><span class="idx">06</span> Apache Hadoop — <a href="https://hadoop.apache.org/">hadoop.apache.org</a></li>
+          <li><span class="idx">07</span> Spark Streaming — <a href="https://spark.apache.org/streaming/">spark.apache.org</a></li>
+          <li><span class="idx">08</span> Apache Storm — <a href="https://storm.apache.org/">storm.apache.org</a></li>
+          <li><span class="idx">09</span> Apache Kafka — <a href="https://kafka.apache.org/documentation/">kafka.apache.org</a></li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <p class="colophon">Companion to notes/chapter-13-design-a-search-autocomplete-system.md — jot doubts and follow-ups there.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (typeof mermaid !== 'undefined') {
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+  }
+</script>
